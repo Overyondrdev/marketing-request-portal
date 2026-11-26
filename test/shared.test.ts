@@ -67,6 +67,7 @@ describe('catalog', () => {
         audience_detail: 'Superintendents',
         region: ['United States'],
         key_message: 'It works',
+        reference_links: ['https://drive.google.com/example'],
         must_include: 'Use the logo lockup and approved statistics only, with sources.',
         purpose: 'sales',
         starting_point: 'new',

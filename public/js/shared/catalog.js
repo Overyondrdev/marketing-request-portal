@@ -120,6 +120,13 @@ export const BASE_FIELDS = [
     help: 'Required logos, legal lines, product names, facts that must be checked, things not to say.',
     maxLength: 2000,
   },
+  {
+    id: 'reference_links',
+    label: 'Links to examples, drafts or shared folders',
+    type: 'links',
+    weight: 2,
+    help: 'Google Drive, Dropbox, Figma, examples you like: anything that shows what you mean.',
+  },
 ];
 
 const yesNo = [
