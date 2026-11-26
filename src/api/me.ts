@@ -73,14 +73,14 @@ export async function directory(env: Env) {
   });
 }
 
-/** Admin overrides for each request type (enabled, turnaround, approval). Assignees stay internal. */
+/** Admin overrides for each request type (enabled, approval). Assignees stay internal. */
 export async function catalogSettings(env: Env) {
   const s = await typeSettings(env);
   return json({
     settings: Object.fromEntries(
       TYPES.map((t) => {
         const e = effective(t.id, s[t.id]);
-        return [t.id, { enabled: e.enabled, requiresApproval: e.requiresApproval, leadDays: e.leadDays }];
+        return [t.id, { enabled: e.enabled, requiresApproval: e.requiresApproval }];
       }),
     ),
   });

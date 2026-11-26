@@ -153,7 +153,8 @@ export default async function home(main, ctx) {
             <ul class="ticks">
               <li>
                 ${icon('check', 18)}<span
-                  ><strong>Ask early.</strong> Each request type shows its usual turnaround; earlier dates are marked rush.</span
+                  ><strong>Ask early.</strong> Give the date you really need it by. Whoever picks it up estimates when it will be ready, and
+                  you’ll see that date on the request.</span
                 >
               </li>
               <li>

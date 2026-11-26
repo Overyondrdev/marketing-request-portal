@@ -8,10 +8,8 @@ import {
   validateBrief,
   visibleFields,
   briefScore,
-  leadDaysFor,
   addBusinessDays,
   businessDaysBetween,
-  earliestStandardDate,
   searchTypes,
   fieldError,
   cleanBrief,
@@ -85,12 +83,16 @@ describe('catalog', () => {
     expect(thin.tips.length).toBeGreaterThan(0);
   });
 
-  it('counts business days and turnaround, including answer-specific lead times', () => {
+  it('counts business days', () => {
     expect(addBusinessDays('2026-11-27', 1)).toBe('2026-11-30'); // Fri -> Mon
     expect(businessDaysBetween('2026-11-27', '2026-12-04')).toBe(5);
-    expect(leadDaysFor(TYPE_BY_ID.presentation, { starting_point: 'polish' })).toBe(4);
-    expect(leadDaysFor(TYPE_BY_ID.presentation, {})).toBe(10);
-    expect(earliestStandardDate(TYPE_BY_ID.brand_assets, {}, '2026-11-23')).toBe('2026-11-25'); // no approval step
+  });
+
+  it('has no fixed turnaround per type, and offers a sales kit', () => {
+    expect(TYPES.some((t: any) => 'leadDays' in t || 'leadRules' in t)).toBe(false);
+    expect(TYPE_BY_ID.sales_kit.category).toBe('sales');
+    expect(searchTypes('sales kit')[0].id).toBe('sales_kit');
+    expect(visibleFields(TYPE_BY_ID.sales_kit, { kit_purpose: 'refresh' }).some((f) => f.id === 'existing_kit')).toBe(true);
   });
 
   it('finds types by everyday words', () => {

@@ -1844,3 +1844,17 @@ details.faq p {
 .dot-count {
   font-variant-numeric: lining-nums tabular-nums;
 }
+
+/* Estimated delivery (assignee's estimate) */
+.est {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--moss);
+  white-space: nowrap;
+}
+.est.late {
+  color: var(--warn);
+}

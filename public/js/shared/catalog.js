@@ -1,13 +1,13 @@
 // The request catalog: every kind of work marketing takes on, and the questions that make a complete brief for it.
 // Shared by the browser (renders the form) and the Worker (validates and scores briefs), so it must stay plain,
-// dependency-free JavaScript. Admins can switch types off, change turnaround, approval and default assignee from
+// dependency-free JavaScript. Admins can switch types off and change approval and default assignee from
 // the portal (type_settings); everything else is edited here.
 //
 // Field types: text, textarea, select, cards (big single-choice tiles), multi (chips), date, daterange, number,
 // money, url, links (several URLs), toggle, address.
 // showIf: { field, equals | in | truthy } shows a question only when it applies.
 // weight: how much an optional answer adds to the brief score (required answers weigh 3).
-// leadRules: [{ if: {field, equals|in}, days }] change the standard turnaround for a particular answer.
+// There is no fixed turnaround per type: whoever picks the work up estimates its delivery date (workflow.js).
 
 /** @typedef {{ value: string, label: string, hint?: string }} Option */
 /** @typedef {{ field: string, equals?: any, in?: any[], truthy?: boolean }} Cond */
@@ -18,8 +18,7 @@
  */
 /**
  * @typedef {{ id: string, category: string, name: string, summary: string, icon: string, keywords: string[],
- *   leadDays: number, requiresApproval: boolean, deliverables: string, fields: Field[],
- *   leadRules?: { if: Cond, days: number }[], adLibrary?: boolean }} RequestType
+ *   requiresApproval: boolean, deliverables: string, fields: Field[], adLibrary?: boolean }} RequestType
  */
 
 export const CATEGORIES = [
@@ -69,7 +68,7 @@ export const DEPARTMENTS = [
 ];
 export const PRIORITIES = [
   { value: 'low', label: 'Low', hint: 'Nice to have, flexible timing' },
-  { value: 'normal', label: 'Normal', hint: 'Standard turnaround' },
+  { value: 'normal', label: 'Normal', hint: 'No particular rush' },
   { value: 'high', label: 'High', hint: 'Tied to revenue or a fixed date' },
   { value: 'urgent', label: 'Urgent', hint: 'Blocking a deal, launch or event' },
 ];
@@ -144,7 +143,6 @@ export const TYPES = [
     category: 'content',
     name: 'Copywriting',
     icon: 'pen',
-    leadDays: 5,
     requiresApproval: true,
     summary: 'Copy for a page, email, flyer, script or anything else that needs words.',
     keywords: ['copy', 'words', 'text', 'write', 'edit', 'proofread', 'messaging', 'tagline', 'headline'],
@@ -192,14 +190,12 @@ export const TYPES = [
       { id: 'tone', label: 'Tone', type: 'multi', options: toneOptions, weight: 1 },
       { id: 'cta', label: 'What should readers do next?', type: 'text', weight: 2, placeholder: 'e.g. Book a demo, Download the guide' },
     ],
-    leadRules: [{ if: { field: 'scope', equals: 'proof' }, days: 2 }],
   },
   {
     id: 'blog_article',
     category: 'content',
     name: 'Blog post or article',
     icon: 'doc',
-    leadDays: 10,
     requiresApproval: true,
     summary: 'A post for the Yondr blog, a guest article or a thought-leadership piece.',
     keywords: ['blog', 'article', 'post', 'thought leadership', 'op-ed', 'byline', 'guest post', 'seo'],
@@ -247,7 +243,6 @@ export const TYPES = [
     category: 'content',
     name: 'Case study or customer story',
     icon: 'star',
-    leadDays: 15,
     requiresApproval: true,
     summary: 'A customer success story with results, quotes and photos.',
     keywords: ['case study', 'customer story', 'testimonial', 'success story', 'results', 'reference'],
@@ -301,7 +296,6 @@ export const TYPES = [
     category: 'content',
     name: 'Press release or announcement',
     icon: 'news',
-    leadDays: 10,
     requiresApproval: true,
     summary: 'News for the media: partnerships, launches, milestones, research.',
     keywords: ['press', 'press release', 'pr', 'announcement', 'news', 'media', 'launch', 'newswire'],
@@ -326,7 +320,6 @@ export const TYPES = [
     category: 'content',
     name: 'Internal communication',
     icon: 'chat',
-    leadDays: 3,
     requiresApproval: false,
     summary: 'An all-hands slide, company announcement, internal newsletter item or update.',
     keywords: ['internal', 'all hands', 'announcement', 'company update', 'newsletter', 'slack', 'memo', 'employee'],
@@ -351,7 +344,6 @@ export const TYPES = [
     category: 'sales',
     name: 'Presentation or deck',
     icon: 'slides',
-    leadDays: 10,
     requiresApproval: true,
     summary: 'A new deck, or design and story help on an existing one: sales, conference, board, training.',
     keywords: ['deck', 'presentation', 'slides', 'powerpoint', 'ppt', 'keynote', 'google slides', 'pitch', 'webinar slides', 'board deck'],
@@ -416,17 +408,12 @@ export const TYPES = [
         help: 'A rough list is perfect. Note any data or proof points you want in.',
       },
     ],
-    leadRules: [
-      { if: { field: 'starting_point', equals: 'polish' }, days: 4 },
-      { if: { field: 'starting_point', equals: 'refresh' }, days: 7 },
-    ],
   },
   {
     id: 'collateral',
     category: 'sales',
     name: 'One-pager, brochure or sell sheet',
     icon: 'page',
-    leadDays: 10,
     requiresApproval: true,
     summary: 'A leave-behind or downloadable: one-pager, brochure, flyer, FAQ or product sheet.',
     keywords: [
@@ -496,11 +483,106 @@ export const TYPES = [
     ],
   },
   {
+    id: 'sales_kit',
+    category: 'sales',
+    name: 'Sales kit',
+    icon: 'briefcase',
+    requiresApproval: true,
+    summary: 'A set of sales materials for a segment, launch, campaign or new reps: deck, one-pagers, emails, battlecards and more.',
+    keywords: [
+      'sales kit',
+      'kit',
+      'enablement',
+      'playbook',
+      'toolkit',
+      'battlecard',
+      'talk track',
+      'pitch kit',
+      'launch kit',
+      'onboarding',
+    ],
+    deliverables: 'Every piece listed, branded and organized in one shared folder, with a short guide on when to use each.',
+    fields: [
+      {
+        id: 'kit_purpose',
+        label: 'What is the kit for?',
+        type: 'cards',
+        required: true,
+        options: [
+          { value: 'segment', label: 'Selling into a segment', hint: 'e.g. districts, courts, venues' },
+          { value: 'launch', label: 'A product or offer launch' },
+          { value: 'campaign', label: 'A campaign or event push' },
+          { value: 'onboarding', label: 'New sales reps' },
+          { value: 'partner', label: 'Partners or distributors' },
+          { value: 'refresh', label: 'Refreshing an existing kit' },
+        ],
+      },
+      {
+        id: 'existing_kit',
+        label: 'Link to the current kit or folder',
+        type: 'url',
+        required: true,
+        showIf: { field: 'kit_purpose', equals: 'refresh' },
+      },
+      {
+        id: 'kit_items',
+        label: 'What should be in it?',
+        type: 'multi',
+        required: true,
+        options: [
+          'Pitch deck',
+          'One-pager or sell sheet',
+          'Case studies or customer stories',
+          'Email templates or sequences',
+          'Call script or talk track',
+          'Objection handling guide',
+          'Competitive battlecard',
+          'Pricing or proposal template',
+          'FAQ',
+          'Demo or product video',
+          'Social posts for reps',
+          'Printed leave-behinds',
+          'Product images',
+        ],
+      },
+      {
+        id: 'print_qty',
+        label: 'How many printed leave-behinds?',
+        type: 'number',
+        min: 1,
+        weight: 1,
+        showIf: { field: 'kit_items', in: ['Printed leave-behinds'] },
+      },
+      {
+        id: 'kit_users',
+        label: 'Who will use the kit?',
+        type: 'text',
+        required: true,
+        placeholder: 'e.g. The K-12 sales team, 12 reps across the US',
+      },
+      { id: 'kit_launch', label: 'When will reps start using it?', type: 'date', weight: 2 },
+      {
+        id: 'kit_home',
+        label: 'Where should it live?',
+        type: 'select',
+        weight: 1,
+        options: ['Shared Google Drive folder', 'HubSpot', 'Both', 'Not sure, recommend'],
+      },
+      {
+        id: 'kit_messages',
+        label: 'Pain points, proof points and objections to cover',
+        type: 'textarea',
+        weight: 3,
+        help: 'What do buyers worry about, what convinces them, and what do reps hear most? Every claim needs a source.',
+      },
+      { id: 'kit_existing', label: 'Existing materials to reuse', type: 'links', weight: 2 },
+    ],
+  },
+  {
     id: 'proposal',
     category: 'sales',
     name: 'Proposal or RFP support',
     icon: 'clipboard',
-    leadDays: 7,
     requiresApproval: true,
     summary: 'Help with an RFP response, proposal, grant application or pricing document.',
     keywords: ['rfp', 'proposal', 'bid', 'tender', 'grant', 'quote', 'response', 'procurement', 'rfq'],
@@ -534,7 +616,6 @@ export const TYPES = [
     category: 'design',
     name: 'Graphic design',
     icon: 'palette',
-    leadDays: 7,
     requiresApproval: true,
     summary: 'Infographics, illustrations, report layouts, certificates and other one-off graphics.',
     keywords: ['graphic', 'design', 'infographic', 'illustration', 'icon', 'layout', 'image', 'visual', 'certificate', 'chart', 'diagram'],
@@ -577,7 +658,6 @@ export const TYPES = [
     category: 'design',
     name: 'Print, signage or packaging',
     icon: 'sign',
-    leadDays: 15,
     requiresApproval: true,
     summary: 'Posters, banners, school and venue signage, stickers, packaging and printed pieces.',
     keywords: ['print', 'signage', 'sign', 'poster', 'banner', 'sticker', 'decal', 'packaging', 'pouch', 'label', 'school sign', 'venue'],
@@ -627,14 +707,12 @@ export const TYPES = [
         showIf: { field: 'production', equals: 'marketing' },
       },
     ],
-    leadRules: [{ if: { field: 'production', equals: 'me' }, days: 7 }],
   },
   {
     id: 'brand_assets',
     category: 'design',
     name: 'Brand files or templates',
     icon: 'shapes',
-    leadDays: 2,
     requiresApproval: false,
     summary: 'Logos, co-branded lockups, brand guidelines, templates, email signatures, photos from our library.',
     keywords: [
@@ -693,7 +771,6 @@ export const TYPES = [
     category: 'digital',
     name: 'Paid ads',
     icon: 'megaphone',
-    leadDays: 10,
     requiresApproval: true,
     adLibrary: true,
     summary: 'Search, social, display, video or audio ads. Creative is reviewed in the ad library.',
@@ -777,17 +854,12 @@ export const TYPES = [
         options: ['UTM links', 'HubSpot campaign', 'Conversion pixel', 'Call tracking'],
       },
     ],
-    leadRules: [
-      { if: { field: 'creative_ready', equals: 'have' }, days: 4 },
-      { if: { field: 'creative_ready', equals: 'resize' }, days: 6 },
-    ],
   },
   {
     id: 'email_campaign',
     category: 'digital',
     name: 'Email campaign or newsletter',
     icon: 'mail',
-    leadDays: 7,
     requiresApproval: true,
     summary: 'A marketing email, nurture sequence, customer newsletter or event invitation.',
     keywords: ['email', 'newsletter', 'nurture', 'sequence', 'drip', 'invite', 'invitation', 'hubspot', 'eblast', 'mailing'],
@@ -841,7 +913,6 @@ export const TYPES = [
     category: 'digital',
     name: 'Website page or update',
     icon: 'browser',
-    leadDays: 15,
     requiresApproval: true,
     summary: 'A new landing page or site page, or changes to an existing page on overyondr.com.',
     keywords: ['website', 'web', 'landing page', 'page', 'site', 'overyondr.com', 'update', 'fix', 'seo', 'form', 'url'],
@@ -885,17 +956,12 @@ export const TYPES = [
       },
       { id: 'live_date', label: 'Go-live date', type: 'date', weight: 2 },
     ],
-    leadRules: [
-      { if: { field: 'web_kind', equals: 'fix' }, days: 2 },
-      { if: { field: 'web_kind', equals: 'update' }, days: 5 },
-    ],
   },
   {
     id: 'social_media',
     category: 'digital',
     name: 'Social media post or campaign',
     icon: 'share',
-    leadDays: 5,
     requiresApproval: true,
     summary: 'Organic posts for Yondr channels, or content for you to share.',
     keywords: ['social', 'linkedin', 'instagram', 'twitter', 'x', 'facebook', 'tiktok', 'post', 'organic', 'social media'],
@@ -931,7 +997,6 @@ export const TYPES = [
     category: 'events',
     name: 'Trade show or conference kit',
     icon: 'tent',
-    leadDays: 30,
     requiresApproval: true,
     summary: 'Everything for a booth: backdrop, table, banners, handouts, swag, demo pouches and lead capture.',
     keywords: [
@@ -1023,7 +1088,6 @@ export const TYPES = [
     category: 'events',
     name: 'Event or sponsorship support',
     icon: 'calendar',
-    leadDays: 20,
     requiresApproval: true,
     summary: 'Hosting an event, a speaking slot, a sponsorship, or a customer or partner gathering.',
     keywords: [
@@ -1090,7 +1154,6 @@ export const TYPES = [
     category: 'events',
     name: 'Swag and merchandise',
     icon: 'gift',
-    leadDays: 25,
     requiresApproval: true,
     summary: 'Branded giveaways, apparel, customer gifts and kits.',
     keywords: ['swag', 'merch', 'merchandise', 'shirts', 't-shirts', 'apparel', 'giveaway', 'gift', 'stickers', 'promo', 'branded'],
@@ -1121,7 +1184,6 @@ export const TYPES = [
     category: 'events',
     name: 'Webinar or virtual event',
     icon: 'video',
-    leadDays: 20,
     requiresApproval: true,
     summary: 'A webinar, virtual panel or online training: registration, promotion, slides and follow-up.',
     keywords: ['webinar', 'virtual', 'online event', 'zoom', 'panel', 'livestream', 'training', 'registration'],
@@ -1162,7 +1224,6 @@ export const TYPES = [
     category: 'video',
     name: 'Video or animation',
     icon: 'film',
-    leadDays: 25,
     requiresApproval: true,
     summary: 'Testimonials, explainers, event recaps, social clips, animation and edits of existing footage.',
     keywords: [
@@ -1240,17 +1301,12 @@ export const TYPES = [
       { id: 'script', label: 'Script, story or key moments', type: 'textarea', weight: 3 },
       { id: 'budget', label: 'Budget (crew, music, travel)', type: 'money', weight: 1 },
     ],
-    leadRules: [
-      { if: { field: 'video_kind', equals: 'edit' }, days: 10 },
-      { if: { field: 'video_kind', equals: 'social' }, days: 10 },
-    ],
   },
   {
     id: 'photography',
     category: 'video',
     name: 'Photography',
     icon: 'camera',
-    leadDays: 15,
     requiresApproval: true,
     summary: 'A photo shoot at a school, venue or event, headshots or product photography.',
     keywords: ['photo', 'photography', 'photoshoot', 'shoot', 'headshot', 'pictures', 'images', 'product photos', 'event photos'],
@@ -1294,7 +1350,6 @@ export const TYPES = [
     category: 'insights',
     name: 'Market or competitive research',
     icon: 'compass',
-    leadDays: 10,
     requiresApproval: true,
     summary: 'Competitor analysis, market sizing, legislation tracking, customer surveys or research summaries.',
     keywords: ['research', 'competitor', 'competitive', 'market', 'survey', 'data', 'analysis', 'insights', 'legislation', 'tam', 'study'],
@@ -1317,7 +1372,6 @@ export const TYPES = [
     category: 'insights',
     name: 'Media, PR or award submission',
     icon: 'award',
-    leadDays: 10,
     requiresApproval: true,
     summary: 'A press opportunity, interview prep, media pitch, or an award or speaking submission.',
     keywords: [
@@ -1367,7 +1421,6 @@ export const TYPES = [
     category: 'other',
     name: 'Something else',
     icon: 'sparkle',
-    leadDays: 10,
     requiresApproval: true,
     summary: 'Not on the list? Describe it and marketing will route it.',
     keywords: ['other', 'help', 'idea', 'question', 'misc', 'not sure', 'something else'],
@@ -1505,13 +1558,6 @@ export function briefScore(type, answers, { refs = 0, title = '', dueDate = '' }
   return { score: Math.round((got / total) * 100), tips: tips.slice(0, 3) };
 }
 
-/** Standard turnaround in business days, after answers and admin settings. */
-export function leadDaysFor(type, answers, override) {
-  let days = override ?? type.leadDays;
-  for (const r of type.leadRules || []) if (holds(r.if, answers)) days = Math.min(days, r.days);
-  return days;
-}
-
 /** Add business days (Mon-Fri) to a YYYY-MM-DD date. */
 export function addBusinessDays(fromYmd, days) {
   const d = new Date(fromYmd + 'T12:00:00Z');
@@ -1538,12 +1584,6 @@ export function businessDaysBetween(fromYmd, toYmd) {
     if (wd !== 0 && wd !== 6) n++;
   }
   return n * sign;
-}
-
-/** The earliest standard due date, counted from today plus a day for approval when the type needs one. */
-export function earliestStandardDate(type, answers, todayYmd, { leadDays, requiresApproval } = {}) {
-  const lead = leadDaysFor(type, answers, leadDays);
-  return addBusinessDays(todayYmd, lead + ((requiresApproval ?? type.requiresApproval) ? 1 : 0));
 }
 
 /** Simple search over the catalog: name, summary and keywords; best matches first. */

@@ -26,6 +26,7 @@ import {
   spinner,
   setTitle,
   todayYmd,
+  estimateLabel,
 } from '../lib/ui.js';
 import { STAGES, stageOf, STATUSES, ACTIONS } from '../shared/workflow.js';
 import { TYPE_BY_ID, CATEGORIES, BASE_FIELDS, visibleFields, formatAnswer } from '../shared/catalog.js';
@@ -40,6 +41,7 @@ const ORDER = [
   'reject',
   'resubmit',
   'start',
+  'estimate',
   'deliver',
   'accept',
   'request_changes',
@@ -134,8 +136,8 @@ export default async function view(main, ctx) {
       </div>
       <div class="rq-badges">
         ${r.status === 'in_review' && !d.me.relation.requester ? html`<span class="badge t-review">With requester for review</span>` : statusBadge(r.status)}
-        ${r.overdue ? html`<span class="badge overdue">Overdue</span>` : ''} ${r.is_rush ? html`<span class="badge rush">Rush</span>` : ''}
-        ${priorityLabel(r.priority)} ${r.due_date ? dueLabel(r.due_date, open && r.status !== 'in_review') : ''}
+        ${r.overdue ? html`<span class="badge overdue">Overdue</span>` : ''} ${priorityLabel(r.priority)}
+        ${r.due_date ? dueLabel(r.due_date, open && r.status !== 'in_review') : ''} ${estimateLabel(r, { long: true })}
         ${r.waiting_on ? html`<span class="waiting ${r.waiting_on === me().email ? 'you' : ''}">Waiting on <strong>${r.waiting_on === me().email ? 'you' : nm(r.waiting_on)}</strong></span>` : ''}
       </div>
     </header>`;
@@ -200,7 +202,8 @@ export default async function view(main, ctx) {
       buttons = html`${acts.includes('assign') ? html`<button type="button" class="btn lime" data-act="take">${icon('user', 18)}Take it</button>` : ''}${isLead() ? btn('assign', 'Assign…', 'ghost-light') : ''}`;
     } else if (r.status === 'approved' && rel.assignee) {
       title = `${name}, this is yours to start`;
-      text = 'Read the brief, ask anything that’s unclear, then start work so the requester knows it’s moving.';
+      text =
+        'Read the brief and ask anything that’s unclear. When you start, you’ll estimate when it will be ready, so the requester knows what to expect.';
       buttons = html`${btn('start', html`${icon('play', 18)}Start work`, 'lime')}<button
           type="button"
           class="btn ghost-light"
@@ -329,6 +332,36 @@ export default async function view(main, ctx) {
     }
   }
 
+  const estimateFields = (r, changing) =>
+    html`<div class="field">
+        <label class="label" for="dlg-est">Estimated delivery date<span class="req" aria-hidden="true">*</span></label>
+        <p class="hint" id="dlg-est-hint">
+          ${r.due_date ? html`The requester asked for <strong>${fmtDate(r.due_date, { weekday: true })}</strong>.` : 'No due date was given.'}
+          ${r.estimated_date ? html` Current estimate: <strong>${fmtDate(r.estimated_date, { weekday: true })}</strong>.` : ''}
+        </p>
+        <input
+          class="input"
+          type="date"
+          id="dlg-est"
+          name="estimated_date"
+          required
+          min="${todayYmd()}"
+          value="${r.estimated_date && r.estimated_date >= todayYmd() ? r.estimated_date : r.due_date && r.due_date >= todayYmd() ? r.due_date : ''}"
+          aria-describedby="dlg-est-hint"
+        />
+      </div>
+      <div class="field">
+        <label class="label" for="dlg-note"
+          >${changing ? 'Why it changed' : 'Anything the estimate depends on'}<span class="opt">Optional</span></label
+        >
+        <textarea
+          class="textarea short"
+          id="dlg-note"
+          name="note"
+          maxlength="1000"
+          placeholder="${changing ? 'e.g. Waiting on photos from the school.' : 'e.g. Assumes we get the logo files by Friday.'}"
+        ></textarea>
+      </div>`;
   const noteField = (label, { required = false, placeholder = '', hint = '' } = {}) =>
     html`<div class="field">
       <label class="label" for="dlg-note"
@@ -448,8 +481,25 @@ export default async function view(main, ctx) {
         return;
       }
       case 'start':
-        run('start', {}, 'Started. The requester can see it’s in production.');
+      case 'estimate': {
+        const v = await dialog({
+          title: a === 'start' ? 'Start work' : 'Update the estimate',
+          text:
+            a === 'start'
+              ? `When do you expect this to be ready for ${who(r.requester_email)} to review? They’ll see the date and get a notification.`
+              : `${who(r.requester_email)} is told about the new date.`,
+          body: estimateFields(r, a === 'estimate'),
+          confirm: a === 'start' ? 'Start work' : 'Save estimate',
+          tone: a === 'start' ? 'lime' : 'primary',
+        });
+        if (!v) return;
+        run(
+          a,
+          { estimated_date: v.estimated_date, note: v.note },
+          a === 'start' ? `Started. Estimated delivery ${fmtDate(v.estimated_date)}.` : `Estimate updated to ${fmtDate(v.estimated_date)}.`,
+        );
         return;
+      }
       case 'deliver': {
         const round = r.revision_count + 1;
         const have = d.files.filter((f) => f.kind === 'deliverable' && f.version === round).length;
@@ -629,17 +679,6 @@ export default async function view(main, ctx) {
         </div>
       </div>
       <div class="card-body">
-        ${
-          r.is_rush && r.rush_reason
-            ? html`<div class="rq-callout warn">
-                ${icon('zap', 18)}
-                <div>
-                  <strong>Rush request.</strong> Due faster than the usual ${d.settings?.leadDays ?? type.leadDays} business days.
-                  <span class="rq-pre">${r.rush_reason}</span>
-                </div>
-              </div>`
-            : ''
-        }
         ${section(
           'Goal and audience',
           fields.filter((f) => baseIds.has(f.id)),
@@ -1019,7 +1058,9 @@ ${composer.text}</textarea>
           ? 'took the request'
           : `assigned it to ${who(t.assignee)}${t.previous ? ` (was ${who(t.previous)})` : ''}`;
       case 'start':
-        return 'started work';
+        return `started work${t.estimated_date ? ` · estimated delivery ${fmtDate(t.estimated_date)}` : ''}`;
+      case 'estimate':
+        return `changed the estimated delivery to ${fmtDate(t.estimated_date)}${t.previous ? ` (was ${fmtDate(t.previous)})` : ''}`;
       case 'deliver':
         return `sent round ${t.round || 1} for review`;
       case 'request_changes':
@@ -1058,7 +1099,6 @@ ${composer.text}</textarea>
           brief: 'the brief',
           links: 'the links',
           approver_email: 'the approver',
-          rush_reason: 'the rush reason',
           department: 'the department',
         };
         if (rest.length) bits.push(`updated ${rest.map((f) => words[f] || f).join(', ')}`);
@@ -1129,6 +1169,19 @@ ${composer.text}</textarea>
           <dt><label for="rq-due">Due</label></dt>
           <dd>
             ${mk ? html`<input class="input sm" type="date" id="rq-due" value="${r.due_date || ''}" data-due />` : r.due_date ? html`${fmtDate(r.due_date, { weekday: true, year: true })}` : html`<span class="muted">Not set</span>`}
+          </dd>
+        </div>
+        <div>
+          <dt>Estimated delivery</dt>
+          <dd>
+            ${
+              r.estimated_date
+                ? html`<span class="${r.due_date && r.estimated_date > r.due_date ? 'est late' : ''}"
+                      >${fmtDate(r.estimated_date, { weekday: true, year: true })}</span
+                    >${r.estimate_note ? html`<span class="tiny muted rq-sub">${r.estimate_note}</span>` : ''}`
+                : html`<span class="muted">${r.started_at || !STATUSES[r.status]?.open ? 'Not given' : 'Set when work starts'}</span>`
+            }
+            ${d.me.actions.includes('estimate') ? html`<button type="button" class="link-btn small" data-act="estimate">${r.estimated_date ? 'Change' : 'Add'}</button>` : ''}
           </dd>
         </div>
         <div>

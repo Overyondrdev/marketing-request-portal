@@ -218,6 +218,16 @@ export function waitingLabel(req, me, names) {
   const you = me && w === me.email;
   return html`<span class="waiting ${you ? 'you' : ''}">Waiting on <strong>${you ? 'you' : nameOf(w, names)}</strong></span>`;
 }
+/** The assignee's estimated delivery date, for open work that has one. Flags estimates later than the due date. */
+export function estimateLabel(r, { long = false } = {}) {
+  if (!r.estimated_date || !STATUSES[r.status]?.open || r.status === 'in_review') return '';
+  const late = r.due_date && r.estimated_date > r.due_date;
+  return html`<span
+    class="est ${late ? 'late' : ''}"
+    title="${late ? 'Estimated after the date the requester asked for' : 'Estimated delivery'}"
+    >${icon('clock', 14)}${long ? 'Estimated delivery ' : 'Est. '}${fmtDate(r.estimated_date)}</span
+  >`;
+}
 export const PRIORITY_LABEL = { low: 'Low', normal: 'Normal', high: 'High', urgent: 'Urgent' };
 export function priorityLabel(p) {
   if (!p || p === 'normal') return '';
@@ -232,8 +242,7 @@ export function requestRow(r, { me, names = {}, showRequester = false, i = 0 } =
       <span class="t">${r.title || 'Untitled request'}</span>
       <span class="meta"
         ><span class="ref">${r.ref}</span><span>${r.type_name}</span>
-        ${showRequester ? html`<span>${nameOf(r.requester_email, names)}</span>` : ''}
-        ${r.is_rush ? html`<span class="badge plain rush">Rush</span>` : ''}${priorityLabel(r.priority)}
+        ${showRequester ? html`<span>${nameOf(r.requester_email, names)}</span>` : ''} ${estimateLabel(r)}${priorityLabel(r.priority)}
         ${r.open_questions ? html`<span class="prio p-high">${icon('question', 14)}${plural(r.open_questions, 'open question')}</span>` : ''}
       </span>
     </div>

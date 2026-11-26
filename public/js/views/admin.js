@@ -1,6 +1,6 @@
 // People & routing (marketing leads and admins):
 //   People   roles (admins only; owners locked), approvers, managers, departments, active
-//   Routing  per request type: on/off, who gets approved work, standard turnaround, whether approval is needed
+//   Routing  per request type: on/off, who gets approved work, whether approval is needed
 //   Audit    who changed what
 
 import { api } from '../lib/api.js';
@@ -349,7 +349,7 @@ function auditTab(out, audit, people) {
     }
     if (a.action === 'type_updated') {
       return html`changed routing for <strong>${typeName(a.target)}</strong>: ${det.enabled ? 'on' : 'off'},
-        ${det.default_assignee ? `goes to ${nameOf(det.default_assignee, names)}` : 'lead triages'}${det.lead_days !== null && det.lead_days !== undefined ? `, ${det.lead_days} days` : ''}${det.requires_approval === null || det.requires_approval === undefined ? '' : det.requires_approval ? ', approval required' : ', no approval'}`;
+        ${det.default_assignee ? `goes to ${nameOf(det.default_assignee, names)}` : 'lead triages'}${det.requires_approval === null || det.requires_approval === undefined ? '' : det.requires_approval ? ', approval required' : ', no approval'}`;
     }
     return html`${a.action} ${a.target || ''}`;
   };
@@ -402,7 +402,6 @@ async function routing(out) {
                     <th scope="col">Request type</th>
                     <th scope="col">Available</th>
                     <th scope="col">Approved work goes to</th>
-                    <th scope="col">Turnaround</th>
                     <th scope="col">Manager approval</th>
                   </tr>
                 </thead>
@@ -432,22 +431,6 @@ async function routing(out) {
                         </select>
                       </td>
                       <td>
-                        <span class="days-input"
-                          ><label class="visually-hidden" for="ld-${t.id}">Standard turnaround for ${t.name}, business days</label>
-                          <input
-                            class="input sm"
-                            id="ld-${t.id}"
-                            type="number"
-                            min="0"
-                            max="120"
-                            inputmode="numeric"
-                            data-f="lead_days"
-                            value="${s.lead_days ?? ''}"
-                            placeholder="${t.leadDays}"
-                          /><span class="small muted">days</span></span
-                        >
-                      </td>
-                      <td>
                         <label class="visually-hidden" for="ap-${t.id}">Approval for ${t.name}</label
                         ><select class="select sm" id="ap-${t.id}" data-f="requires_approval">
                           <option value="default" ${appr === 'default' ? 'selected' : ''}>
@@ -473,7 +456,6 @@ async function routing(out) {
     const id = e.target.closest('tr').dataset.type;
     let v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     if (f === 'default_assignee') v = v || null;
-    if (f === 'lead_days') v = v === '' ? null : Number(v);
     if (f === 'requires_approval') v = v === 'default' ? null : v === 'yes';
     try {
       d = await api.put(`/api/admin/types/${id}`, { [f]: v });
