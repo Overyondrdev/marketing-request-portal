@@ -261,6 +261,7 @@ export function toast(message, { error = false, timeout = 5000, action } = {}) {
       </button>`,
   );
   t.querySelector('.x').addEventListener('click', () => t.remove());
+  while (box.children.length >= 3) box.firstElementChild.remove();
   box.append(t);
   if (timeout) setTimeout(() => t.remove(), timeout);
 }

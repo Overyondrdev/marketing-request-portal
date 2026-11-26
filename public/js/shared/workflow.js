@@ -13,7 +13,7 @@ export const STATUSES = {
   rejected: { label: 'Not approved', tone: 'bad', open: true },
   approved: { label: 'In marketing queue', tone: 'info', open: true },
   in_progress: { label: 'In production', tone: 'go', open: true },
-  in_review: { label: 'Ready for your review', tone: 'review', open: true },
+  in_review: { label: 'In review', tone: 'review', open: true },
   on_hold: { label: 'On hold', tone: 'muted', open: true },
   completed: { label: 'Delivered', tone: 'done', open: false },
   cancelled: { label: 'Cancelled', tone: 'muted', open: false },
