@@ -1,10 +1,15 @@
-// Who is signed in. Cloudflare Access signs people in at the edge (one-time code to an @overyondr.com address) and
+import { yondrUser } from './yondr-session.js';
+
+// Who is signed in. People sign in with their Yondr Google account at auth.overyondrdev.com, which sets a signed
+// session cookie for all overyondrdev.com sites (verified here by ./yondr-session.js). While Cloudflare Access is
+// being retired, its signed token is accepted too. Formerly: Cloudflare Access signs people in at the edge (one-time code to an @overyondr.com address) and
 // adds a signed token, Cf-Access-Jwt-Assertion, to every request it lets through. The Worker verifies that token
 // (signature against the Yondr team's keys, issuer, expiry, not-before) and takes the email from it, then checks the
 // email's domain against ALLOWED_EMAIL_DOMAINS. So the portal stays private to Yondr even if the host were ever
 // left out of Access, or another Access app with a wider policy issued the token.
 
 export interface AccessEnv {
+  YONDR_AUTH_PUBLIC_JWK?: string;
   ACCESS_TEAM_DOMAIN?: string;
   ALLOWED_EMAIL_DOMAINS?: string;
   DEV_EMAIL?: string;
@@ -44,7 +49,8 @@ export type Identity = { email: string } | { error: 'unauthenticated' | 'forbidd
 
 /** The signed-in person, or why there isn't one. */
 export async function identify(request: Request, env: AccessEnv): Promise<Identity> {
-  const email = await accessEmail(request, env);
+  const user = env.DEV_EMAIL ? null : await yondrUser(request, env as any);
+  const email = user?.email || (await accessEmail(request, env));
   if (!email) return { error: 'unauthenticated' };
   if (!allowedDomain(env, email)) return { error: 'forbidden_domain', email };
   return { email };

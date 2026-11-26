@@ -248,7 +248,9 @@ function renderMeMenu() {
       </div>
       <a href="/settings" data-link role="menuitem">${icon('settings', 18)}Settings &amp; notifications</a>
       <a href="/help" data-link role="menuitem">${icon('help', 18)}Help &amp; how it works</a>
-      <a href="/cdn-cgi/access/logout" role="menuitem">${icon('logout', 18)}Sign out</a>`,
+      <a href="https://auth.overyondrdev.com/logout?return=https%3A%2F%2Frequests.overyondrdev.com%2F" role="menuitem"
+        >${icon('logout', 18)}Sign out</a
+      >`,
   );
 }
 meBtn.addEventListener('click', (e) => {
@@ -314,7 +316,7 @@ async function boot() {
   } catch (e) {
     main.innerHTML = String(
       html`<div class="page narrow">
-        ${empty('We couldn’t sign you in', e.message, { art: 'lock', action: html`<a class="btn primary" href="/cdn-cgi/access/logout">Sign in again</a>` })}
+        ${empty('We couldn’t sign you in', e.message, { art: 'lock', action: html`<a class="btn primary" href="https://auth.overyondrdev.com/login?return=https%3A%2F%2Frequests.overyondrdev.com%2F">Sign in again</a>` })}
       </div>`,
     );
     return;

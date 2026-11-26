@@ -15,5 +15,5 @@
     "noImplicitReturns": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts", "public/js/shared/*.js"]
+  "include": ["src/**/*.ts", "src/lib/*.js", "public/js/shared/*.js"]
 }
