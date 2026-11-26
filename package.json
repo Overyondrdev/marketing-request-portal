@@ -1,0 +1,33 @@
+{
+  "name": "yondr-marketing-requests",
+  "version": "1.0.0",
+  "description": "Yondr marketing request portal: brief, approve, produce and deliver marketing work (Cloudflare Worker + D1 + R2)",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "migrate:local": "wrangler d1 migrations apply yondr-marketing-requests-db --local",
+    "migrate:remote": "wrangler d1 migrations apply yondr-marketing-requests-db --remote",
+    "seed:local": "node scripts/seed-local.mjs",
+    "deploy": "wrangler d1 migrations apply yondr-marketing-requests-db --remote && wrangler deploy",
+    "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json",
+    "lint:js": "node scripts/check-js.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run lint:js && npm run format:check && npm test && wrangler deploy --dry-run --outdir dist",
+    "cf-typegen": "wrangler types --env-interface Env --strict-vars=false src/worker-configuration.d.ts"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.9.2",
+    "prettier": "^3.10.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.2",
+    "wrangler": "^4.168.0"
+  }
+}

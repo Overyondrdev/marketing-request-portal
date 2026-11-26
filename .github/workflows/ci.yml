@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least-privilege token for every job.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Dependabot keeps these current; pin to commit SHAs if your org requires it.
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint:js
+      - run: npm run format:check
+      - run: npm test
+      # Bundles the Worker exactly as a deploy would, without deploying. Needs no Cloudflare credentials.
+      - run: npx wrangler deploy --dry-run --outdir dist
+      - run: npm audit --audit-level=high
+
+# Deploys are done by Cloudflare Workers Builds (Git integration) on merge to main, not by Actions,
+# so no Cloudflare secrets live in GitHub. See docs/setup.md.
