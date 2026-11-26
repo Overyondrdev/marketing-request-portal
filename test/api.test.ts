@@ -118,18 +118,6 @@ describe('request lifecycle', () => {
     expect(Object.keys(r.errors)).toEqual(expect.arrayContaining(['event_name', 'due_date', 'approver_email']));
   });
 
-  it('requires a reason for rush dates', async () => {
-    const { request } = await call(SAM, 'POST', '/api/requests', { type_id: 'presentation' });
-    await call(SAM, 'PATCH', `/api/requests/${request.ref}`, {
-      title: 'Rush deck',
-      due_date: due(1),
-      approver_email: MGR,
-      brief: { objective: 'x', audience: ['Schools (K-12)'], purpose: 'sales', starting_point: 'new', file_format: 'PDF' },
-    });
-    const r = await call(SAM, 'POST', `/api/requests/${request.ref}/actions/submit`, {});
-    expect(r.errors?.rush_reason).toBeTruthy();
-  });
-
   it('goes from approval to delivery, with routing, questions and revisions', async () => {
     const ref = await submittedDeck();
     expect((await call(SAM, 'POST', `/api/requests/${ref}/actions/approve`, {})).status).toBe(403);
@@ -145,7 +133,13 @@ describe('request lifecycle', () => {
     expect(ap.request.status).toBe('approved');
     expect(ap.request.assignee_email).toBe(DANA);
 
-    expect((await call(DANA, 'POST', `/api/requests/${ref}/actions/start`, {})).request.status).toBe('in_progress');
+    expect((await call(DANA, 'POST', `/api/requests/${ref}/actions/start`, {})).status).toBe(400); // needs an estimate
+    const started = await call(DANA, 'POST', `/api/requests/${ref}/actions/start`, { estimated_date: due(10) });
+    expect(started.request.status).toBe('in_progress');
+    expect(started.request.estimated_date).toBe(due(10));
+    const moved = await call(DANA, 'POST', `/api/requests/${ref}/actions/estimate`, { estimated_date: due(12), note: 'Waiting on photos' });
+    expect(moved.request.estimated_date).toBe(due(12));
+    expect((await call(SAM, 'POST', `/api/requests/${ref}/actions/estimate`, { estimated_date: due(5) })).status).toBe(409);
     expect((await call(DANA, 'POST', `/api/requests/${ref}/actions/deliver`, { note: 'v1' })).status).toBe(400);
     await call(DANA, 'PUT', `/api/requests/${ref}/files?kind=deliverable&name=v1.png`, undefined, new Uint8Array([1, 2, 3]));
     expect((await call(DANA, 'POST', `/api/requests/${ref}/actions/deliver`, { note: 'v1' })).request.status).toBe('in_review');

@@ -153,15 +153,12 @@ export default async function (main, ctx) {
 
   function approvalCard(r, d, names, i) {
     const brief = d?.request?.brief || {};
-    const rush = d?.request?.rush_reason;
     const obj = typeof brief.objective === 'string' ? brief.objective : '';
     const aud = Array.isArray(brief.audience) ? brief.audience.join(', ') : '';
     return html`<article class="card approval rise" style="--i:${Math.min(i, 8)}" data-ref="${r.ref}">
       <div class="approval-main">
         <div class="row wrap-gap">
-          <span class="ref">${r.ref}</span
-          ><span class="small muted">${r.type_name}</span
-          >${r.is_rush ? html`<span class="badge plain rush">Rush</span>` : ''}${priorityLabel(r.priority)}
+          <span class="ref">${r.ref}</span><span class="small muted">${r.type_name}</span>${priorityLabel(r.priority)}
         </div>
         <h2 class="approval-title"><a href="/requests/${r.ref}" data-link>${r.title || 'Untitled request'}</a></h2>
         ${obj ? html`<p class="approval-obj">${obj.length > 260 ? obj.slice(0, 260) + '…' : obj}</p>` : ''}
@@ -195,13 +192,6 @@ export default async function (main, ctx) {
             <dd>${ago(r.submitted_at)}</dd>
           </div>
         </dl>
-        ${
-          r.is_rush && rush
-            ? html`<p class="rush-reason">
-                ${icon('zap', 16)}<span><strong>Why it’s a rush:</strong> ${rush}</span>
-              </p>`
-            : ''
-        }
       </div>
       <div class="approval-actions">
         <button type="button" class="btn primary" data-approve="${r.ref}">${icon('check', 18)}Approve</button>

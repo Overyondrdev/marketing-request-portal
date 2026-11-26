@@ -21,6 +21,7 @@ import {
   fmtDate,
   todayYmd,
   plural,
+  estimateLabel,
 } from '../lib/ui.js';
 import { CATEGORIES, TYPE_BY_ID } from '../shared/catalog.js';
 
@@ -231,12 +232,12 @@ export default async function (main, ctx) {
     return html`<article class="qcard ${r.overdue ? 'late' : ''}" data-ref="${r.ref}">
       <div class="qcard-top">
         <span class="qcard-type" title="${r.type_name}">${icon(t?.icon || 'doc', 16)}</span
-        ><span class="ref">${r.ref}</span> ${r.is_rush ? html`<span class="badge plain rush">Rush</span>` : ''}${priorityLabel(r.priority)}
+        ><span class="ref">${r.ref}</span> ${priorityLabel(r.priority)}
       </div>
       <h3 class="qcard-title"><a href="/requests/${r.ref}" data-link>${r.title || 'Untitled request'}</a></h3>
       <p class="qcard-sub">${r.type_name} · ${nameOf(r.requester_email, state.names)}</p>
       <div class="qcard-foot">
-        ${dueLabel(r.due_date, r.status !== 'in_review')}
+        ${dueLabel(r.due_date, r.status !== 'in_review')} ${estimateLabel(r)}
         ${r.open_questions ? html`<span class="prio p-high" title="Open questions">${icon('question', 14)}${r.open_questions}</span>` : ''}
         <span class="qcard-who"
           >${r.assignee_email ? html`<span title="${nameOf(r.assignee_email, state.names)}">${avatar(r.assignee_email, nameOf(r.assignee_email, state.names), 'sm')}</span>` : ''}</span
@@ -310,8 +311,7 @@ export default async function (main, ctx) {
               html`<tr class="${r.overdue ? 'late' : ''}">
                 <td><span class="ref">${r.ref}</span></td>
                 <td class="t-title">
-                  <a href="/requests/${r.ref}" data-link>${r.title || 'Untitled request'}</a
-                  >${r.is_rush ? html` <span class="badge plain rush">Rush</span>` : ''}
+                  <a href="/requests/${r.ref}" data-link>${r.title || 'Untitled request'}</a>
                 </td>
                 <td class="nowrap">${r.type_name}</td>
                 <td>${statusBadge(r.status)}</td>

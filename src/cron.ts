@@ -4,6 +4,7 @@
 //   - Blocking questions unanswered 2+ business days → the person asked
 //   - Work ready for review 3+ business days → the requester
 //   - Due in 2 business days and still in production → the assignee
+//   - Past the assignee's own estimate and not delivered → the assignee, to update the estimate
 //   - Overdue → the assignee (or leads if unassigned), daily
 
 import { addBusinessDays, businessDaysBetween } from '../public/js/shared/catalog.js';
@@ -14,7 +15,7 @@ import { leads } from './lib/users';
 export async function reminders(env: Env, ctx: ExecutionContext) {
   const day = today();
   const { results } = await env.DB.prepare(
-    `SELECT id, ref, title, status, requester_email, approver_email, assignee_email, awaiting_email, due_date, submitted_at, updated_at,
+    `SELECT id, ref, title, status, requester_email, approver_email, assignee_email, awaiting_email, due_date, estimated_date, submitted_at, updated_at,
        (SELECT MAX(created_at) FROM events e WHERE e.request_id = requests.id AND e.to_status = requests.status) AS status_since
      FROM requests WHERE status IN ('pending_approval','needs_info','approved','in_progress','in_review')`,
   ).all<any>();
@@ -86,6 +87,23 @@ export async function reminders(env: Env, ctx: ExecutionContext) {
         });
         sent++;
       }
+    }
+    if (
+      ['approved', 'in_progress'].includes(r.status) &&
+      r.assignee_email &&
+      r.estimated_date &&
+      r.estimated_date < day &&
+      (await once('past_estimate'))
+    ) {
+      await notify(env, ctx, [r.assignee_email], {
+        kind: 'reminder',
+        actor: 'system',
+        request: rq,
+        actionNeeded: true,
+        text: `You estimated this would be ready by ${r.estimated_date}. Send it for review, or update the estimate so the requester knows.`,
+        cta: 'Update the estimate',
+      });
+      sent++;
     }
   }
   // Keep the reminders table small.

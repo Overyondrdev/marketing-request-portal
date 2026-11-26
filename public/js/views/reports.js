@@ -182,7 +182,7 @@ function render(d) {
     { l: 'Approval time', v: hrs(k.median_approval_hours), h: 'Median, submitted to approved or declined' },
     { l: 'First response', v: hrs(k.median_first_response_hours), h: 'Median, approval to marketing’s first reply or start' },
     {
-      l: 'Turnaround',
+      l: 'Time to deliver',
       v: k.median_turnaround_days === null ? '—' : `${fmt(k.median_turnaround_days)} days`,
       h: 'Median, approval to delivery',
     },
@@ -197,7 +197,11 @@ function render(d) {
       h: `Delivered with no change requests · ${fmt(k.avg_revisions)} rounds on average`,
     },
     { l: 'Brief quality', v: fmt(k.avg_brief_score, '%'), h: 'Average completeness when submitted' },
-    { l: 'Rush requests', v: fmt(k.rush_pct, '%'), h: 'Due inside the standard turnaround' },
+    {
+      l: 'Delivered by estimate',
+      v: fmt(k.estimate_hit_pct, '%'),
+      h: `Ready by the date the assignee first estimated · ${k.estimate_slips} estimate${k.estimate_slips === 1 ? '' : 's'} pushed back`,
+    },
     { l: 'Approval rate', v: fmt(k.approval_rate_pct, '%'), h: `${k.declined_once} declined at least once` },
   ];
   return html` <section aria-labelledby="h-kpi" class="rep-section">
@@ -471,7 +475,8 @@ function people(d) {
           <th scope="col" class="num">Overdue</th>
           <th scope="col" class="num">Delivered</th>
           <th scope="col" class="num">On time</th>
-          <th scope="col" class="num">Turnaround</th>
+          <th scope="col" class="num">Time to deliver</th>
+          <th scope="col" class="num">Met estimate</th>
           <th scope="col" class="num">Rating</th>
         </tr>
       </thead>
@@ -486,6 +491,7 @@ function people(d) {
               <td class="num">${a.completed}</td>
               <td class="num">${fmt(a.on_time_pct, '%')}</td>
               <td class="num">${a.median_turnaround_days === null ? '—' : `${fmt(a.median_turnaround_days)} days`}</td>
+              <td class="num">${fmt(a.estimate_hit_pct, '%')}</td>
               <td class="num">${a.avg_rating === null ? '—' : `${fmt(a.avg_rating)} / 5`}</td>
             </tr>`,
         )}

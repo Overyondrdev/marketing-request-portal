@@ -26,6 +26,8 @@ const medianDays = (xs: (number | null)[]) => {
 };
 const round = (x: number | null, d = 1) => (x === null ? null : Math.round(x * 10 ** d) / 10 ** d);
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : null);
+// Delivered by the first date the assignee estimated (null when there was no estimate).
+const metEstimate = (r: any) => (r.completed_at && r.first_estimate_date ? r.completed_at.slice(0, 10) <= r.first_estimate_date : null);
 const onTime = (r: any) => (r.completed_at && r.due_date ? r.completed_at.slice(0, 10) <= r.due_date : null);
 function weekStart(iso: string) {
   const d = new Date(iso.slice(0, 10) + 'T12:00:00Z');
@@ -56,8 +58,8 @@ export async function report(env: Env, me: Me, url: URL) {
   if (!isMarketing(me)) fail(403, 'Reports are for the marketing team.');
   const { from, to } = range(url);
   const { results: all } = await env.DB.prepare(
-    `SELECT id, ref, type_id, category_id, title, status, priority, is_rush, requester_email, approver_email, assignee_email,
-            department, due_date, brief_score, revision_count, rating, created_at, submitted_at, decided_at, approved_at,
+    `SELECT id, ref, type_id, category_id, title, status, priority, requester_email, approver_email, assignee_email,
+            department, due_date, estimated_date, first_estimate_date, brief_score, revision_count, rating, created_at, submitted_at, decided_at, approved_at,
             assigned_at, started_at, first_response_at, first_delivery_at, completed_at, closed_at
      FROM requests WHERE status <> 'draft'`,
   ).all<any>();
@@ -93,7 +95,11 @@ export async function report(env: Env, me: Me, url: URL) {
     avg_rating: round(avg(completedInRange.map((r) => r.rating)), 2),
     ratings: completedInRange.filter((r) => r.rating).length,
     avg_brief_score: round(avg(inRange.map((r) => r.brief_score)), 0),
-    rush_pct: pct(inRange.filter((r) => r.is_rush).length, inRange.length),
+    estimate_hit_pct: pct(
+      completedInRange.filter((r) => metEstimate(r)).length,
+      completedInRange.filter((r) => metEstimate(r) !== null).length,
+    ),
+    estimate_slips: inRange.filter((r) => r.first_estimate_date && r.estimated_date && r.estimated_date > r.first_estimate_date).length,
   };
 
   // Now: open work, regardless of range.
@@ -167,6 +173,7 @@ export async function report(env: Env, me: Me, url: URL) {
         completed: doneIn.length,
         on_time_pct: pct(datedIn.filter((r) => onTime(r)).length, datedIn.length),
         median_turnaround_days: medianDays(doneIn.map((r) => hours(r.approved_at, r.completed_at))),
+        estimate_hit_pct: pct(doneIn.filter((r) => metEstimate(r)).length, doneIn.filter((r) => metEstimate(r) !== null).length),
         avg_rating: round(avg(doneIn.map((r) => r.rating)), 2),
       };
     })
@@ -209,7 +216,7 @@ export async function exportCsv(env: Env, me: Me, url: URL) {
     'category',
     'status',
     'priority',
-    'rush',
+    'estimated_delivery',
     'requester',
     'department',
     'approver',
@@ -250,7 +257,7 @@ export async function exportCsv(env: Env, me: Me, url: URL) {
         CATEGORIES.find((c) => c.id === r.category_id)?.name || r.category_id,
         STATUSES[r.status as keyof typeof STATUSES]?.label || r.status,
         r.priority,
-        r.is_rush ? 'yes' : '',
+        r.estimated_date,
         r.requester_email,
         r.department,
         r.approver_email,

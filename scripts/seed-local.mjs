@@ -286,7 +286,6 @@ async function advance(s) {
     brief: s.brief,
     due_date: day(Math.max(s.due, 2)),
     priority: s.priority || 'normal',
-    rush_reason: s.rush || 'Tied to a fixed date.',
   });
   if (s.to === 'draft') return ref;
   if (Math.random() > 0.4) await call(who, 'PUT', `/api/requests/${ref}/files?kind=reference&name=reference.png`, null, png);
@@ -302,7 +301,7 @@ async function advance(s) {
   let d = await call(P.lead, 'GET', `/api/requests/${ref}`);
   const maker = d.request.assignee_email || P.dana;
   if (!d.request.assignee_email) await call(P.lead, 'POST', `/api/requests/${ref}/actions/assign`, { assignee: maker });
-  await call(maker, 'POST', `/api/requests/${ref}/actions/start`, {});
+  await call(maker, 'POST', `/api/requests/${ref}/actions/start`, { estimated_date: day(Math.max(s.due - 1, 1)) });
   await call(maker, 'POST', `/api/requests/${ref}/comments`, { body: 'Got it — I’ll share a first draft early next week.' });
   if (s.to === 'needs_info')
     return void (await call(maker, 'POST', `/api/requests/${ref}/comments`, {

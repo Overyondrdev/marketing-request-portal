@@ -1,14 +1,6 @@
 // Requests: list, home summary, create (draft), read, edit, and every workflow action.
 
-import {
-  TYPE_BY_ID,
-  validateBrief,
-  cleanBrief,
-  briefScore,
-  earliestStandardDate,
-  visibleFields,
-  formatAnswer,
-} from '../../public/js/shared/catalog.js';
+import { TYPE_BY_ID, validateBrief, cleanBrief, briefScore, visibleFields, formatAnswer } from '../../public/js/shared/catalog.js';
 import { ACTIONS, STATUSES, availableActions, can, canEditBrief, waitingOn, relation } from '../../public/js/shared/workflow.js';
 import { allowedDomain } from '../lib/access';
 import { body, fail, isEmail, json, now, parse, str, today, ymd } from '../lib/http';
@@ -29,8 +21,8 @@ import {
 import { ensureUser, isLead, isMarketing, leads, namesFor, type Me } from '../lib/users';
 
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
-const LIST_COLUMNS = `id, ref, type_id, category_id, title, status, prior_status, priority, is_rush, requester_email, approver_email,
-  assignee_email, awaiting_email, department, due_date, brief_score, revision_count, rating, created_at, updated_at, submitted_at,
+const LIST_COLUMNS = `id, ref, type_id, category_id, title, status, prior_status, priority, requester_email, approver_email,
+  assignee_email, awaiting_email, department, due_date, estimated_date, brief_score, revision_count, rating, created_at, updated_at, submitted_at,
   approved_at, started_at, first_delivery_at, completed_at, closed_at`;
 
 function summary(r: Req | any) {
@@ -294,7 +286,6 @@ export async function patch(env: Env, me: Me, ref: string, request: Request) {
     if (!PRIORITIES.includes(b.priority)) fail(400, 'Unknown priority.');
     set('priority', b.priority);
   }
-  if ('rush_reason' in b) set('rush_reason', str(b.rush_reason, 1000) || null);
   if ('department' in b) set('department', str(b.department, 80) || null);
   if ('approver_email' in b) {
     if (!(rel.requester && ['draft', 'pending_approval', 'rejected'].includes(r.status)) && !isLead(me))
@@ -384,9 +375,6 @@ export async function act(env: Env, ctx: ExecutionContext, me: Me, ref: string, 
       if (str(r.title).length < 3) errors.title = 'Give the request a short name.';
       if (!r.due_date) errors.due_date = 'When do you need it?';
       else if (r.due_date < today()) errors.due_date = 'The due date is in the past.';
-      const earliest = earliestStandardDate(type, brief, today(), settings);
-      const rush = !!r.due_date && r.due_date < earliest;
-      if (rush && !str(r.rush_reason)) errors.rush_reason = 'This is faster than the usual turnaround. Tell us why it can’t move.';
       const needsApproval = settings.requiresApproval && !isLead(me);
       if (needsApproval && !r.approver_email) errors.approver_email = 'Choose who approves this (usually your manager).';
       if (needsApproval && r.approver_email === me.email) errors.approver_email = 'Someone else needs to approve your request.';
@@ -402,12 +390,10 @@ export async function act(env: Env, ctx: ExecutionContext, me: Me, ref: string, 
       Object.assign(updates, {
         brief: JSON.stringify(cleanBrief(type, brief)),
         brief_score: score,
-        is_rush: rush ? 1 : 0,
         submitted_at: r.submitted_at && action === 'submit' ? r.submitted_at : ts,
         decided_at: null,
       });
       detail.brief_score = score;
-      if (rush) detail.rush = true;
       if (!needsApproval) {
         to = 'approved';
         Object.assign(updates, { approved_at: ts, decided_at: ts });
@@ -422,14 +408,9 @@ export async function act(env: Env, ctx: ExecutionContext, me: Me, ref: string, 
             request: rq,
             actionNeeded: true,
             subject: `Approval needed: ${r.title} (${r.ref})`,
-            text: `${myName} needs your approval for a marketing request${rush ? ', marked rush' : ''}.`,
+            text: `${myName} needs your approval for a marketing request.`,
             cta: 'Review and approve',
-            detail: [
-              { label: 'Requested by', value: myName },
-              { label: 'Needed by', value: r.due_date || '' },
-              ...(rush ? [{ label: 'Why rush', value: r.rush_reason || '' }] : []),
-              ...lines.slice(0, 4),
-            ],
+            detail: [{ label: 'Requested by', value: myName }, { label: 'Needed by', value: r.due_date || '' }, ...lines.slice(0, 4)],
           }),
         );
       }
@@ -513,17 +494,45 @@ export async function act(env: Env, ctx: ExecutionContext, me: Me, ref: string, 
     }
 
     case 'start':
-      Object.assign(updates, { started_at: r.started_at || ts });
-      if (!r.assignee_email) Object.assign(updates, { assignee_email: me.email, assigned_at: ts });
-      after.push(() =>
-        notify(env, ctx, [r.requester_email], {
-          kind: 'started',
+    case 'estimate': {
+      // Whoever picks the work up says when it will be ready; they can change it later, with a reason.
+      const est = ymd(b.estimated_date);
+      if (!est) fail(400, 'Choose the date you expect to deliver this by.');
+      if (est < today()) fail(400, 'The estimate can’t be in the past.');
+      if (action === 'estimate' && est === r.estimated_date) return get(env, me, r.ref);
+      const reason = str(b.note, 1000);
+      Object.assign(updates, {
+        estimated_date: est,
+        estimate_note: reason || null,
+        estimated_at: ts,
+        first_estimate_date: r.first_estimate_date || est,
+      });
+      detail.estimated_date = est;
+      if (r.estimated_date) detail.previous = r.estimated_date;
+      if (action === 'start') {
+        Object.assign(updates, { started_at: r.started_at || ts });
+        if (!r.assignee_email) Object.assign(updates, { assignee_email: me.email, assigned_at: ts });
+      }
+      const late = !!r.due_date && est > r.due_date;
+      after.push(async () =>
+        notify(env, ctx, action === 'start' ? [r.requester_email] : [r.requester_email, ...(await participants(env, r))], {
+          kind: action === 'start' ? 'started' : 'estimate_changed',
           actor: me.email,
           request: rq,
-          text: `${myName} started work on your request.`,
+          actionNeeded: late,
+          text:
+            action === 'start'
+              ? `${myName} started work and expects to deliver by ${est}.${late ? ` That is after your due date (${r.due_date}).` : ''}`
+              : `${myName} changed the estimated delivery date to ${est}${r.estimated_date ? ` (was ${r.estimated_date})` : ''}.${late ? ` That is after your due date (${r.due_date}).` : ''}`,
+          quote: reason || undefined,
+          detail: [
+            { label: 'Estimated delivery', value: est },
+            { label: 'You asked for', value: r.due_date || '' },
+          ],
         }),
       );
       break;
+    }
 
     case 'deliver': {
       const deliverables = await env.DB.prepare(
@@ -702,7 +711,7 @@ async function routeApproved(env: Env, ctx: ExecutionContext, me: Me, r: Req, de
   const lines = [
     { label: 'Requested by', value: r.requester_email },
     { label: 'Due', value: r.due_date || '' },
-    { label: 'Priority', value: r.priority + (r.is_rush ? ' · rush' : '') },
+    { label: 'Priority', value: r.priority },
   ];
   if (defaultAssignee && !r.assignee_email) {
     await env.DB.prepare('UPDATE requests SET assignee_email = ?, assigned_at = ? WHERE id = ? AND assignee_email IS NULL')

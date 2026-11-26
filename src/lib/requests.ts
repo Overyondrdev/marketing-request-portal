@@ -16,6 +16,10 @@ export interface Req {
   priority: string;
   is_rush: number;
   rush_reason: string | null;
+  estimated_date: string | null;
+  first_estimate_date: string | null;
+  estimate_note: string | null;
+  estimated_at: string | null;
   requester_email: string;
   approver_email: string | null;
   assignee_email: string | null;
@@ -108,7 +112,6 @@ export function effective(typeId: string, s?: TypeSetting) {
   return {
     enabled: s ? !!s.enabled : true,
     requiresApproval: s && s.requires_approval !== null ? !!s.requires_approval : !!t?.requiresApproval,
-    leadDays: s && s.lead_days !== null ? s.lead_days : (t?.leadDays ?? 10),
     defaultAssignee: s?.default_assignee || null,
   };
 }

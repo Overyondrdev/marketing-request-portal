@@ -30,8 +30,6 @@ import {
   visibleFields,
   fieldError,
   briefScore,
-  earliestStandardDate,
-  leadDaysFor,
   searchTypes,
   formatAnswer,
 } from '../shared/catalog.js';
@@ -63,7 +61,7 @@ const STEPS = [
   },
   { id: 'review', label: 'Review', title: 'Check and send', lede: 'Here’s the brief marketing will see.' },
 ];
-const TOP_STEP = { title: 0, due_date: 2, rush_reason: 2, approver_email: 2, priority: 2, department: 2 };
+const TOP_STEP = { title: 0, due_date: 2, approver_email: 2, priority: 2, department: 2 };
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export default async function newRequest(main, ctx) {
@@ -176,8 +174,7 @@ async function picker(main, ctx) {
       <span class="type-body"
         ><strong>${t.name}</strong><span class="type-sum">${t.summary}</span>
         <span class="type-meta"
-          ><span>${icon('clock', 14)}Usually ${s.leadDays ?? t.leadDays} business days</span>
-          <span>${icon(approval ? 'checkCircle' : 'zap', 14)}${approval ? 'Manager approval' : 'No approval needed'}</span></span
+          ><span>${icon(approval ? 'checkCircle' : 'zap', 14)}${approval ? 'Manager approval' : 'No approval needed'}</span></span
         ></span
       >
     </a>`;
@@ -283,7 +280,7 @@ async function wizard(main, ctx, ref) {
   const type = TYPE_BY_ID[r.type_id];
   if (!type) throw new Error('This request’s type no longer exists.');
   const me = store.me;
-  const settings = settingsMap[type.id] || { enabled: true, requiresApproval: type.requiresApproval, leadDays: type.leadDays };
+  const settings = settingsMap[type.id] || { enabled: true, requiresApproval: type.requiresApproval };
   const isDraft = r.status === 'draft';
   const needsApproval = settings.requiresApproval && !isLead();
   const today = todayYmd();
@@ -295,7 +292,6 @@ async function wizard(main, ctx, ref) {
     brief: { ...(r.brief || {}) },
     due_date: r.due_date || '',
     priority: r.priority || 'normal',
-    rush_reason: r.rush_reason || '',
     department: r.department || me.department || '',
     approver: r.approver_email || (me.manager_email !== me.email ? me.manager_email : '') || '',
     approverOther: false,
@@ -369,8 +365,6 @@ async function wizard(main, ctx, ref) {
   const side = main.querySelector('[data-side]');
 
   // ----------------------------------------------------------------- derived
-  const earliest = () => earliestStandardDate(type, s.brief, today, settings);
-  const isRush = () => !!s.due_date && s.due_date < earliest();
   const approverValid = () => !s.approver || (EMAIL_RE.test(s.approver) && s.approver !== me.email);
   const linkFieldIds = () => allFields.filter((f) => f.type === 'links').map((f) => f.id);
   function cleanBriefForSave() {
@@ -402,7 +396,6 @@ async function wizard(main, ctx, ref) {
     } else if (i === 2) {
       if (!s.due_date) e.due_date = 'When do you need it?';
       else if (s.due_date < today) e.due_date = 'That date is in the past.';
-      if (isRush() && !s.rush_reason.trim()) e.rush_reason = 'This is faster than usual. Tell marketing why the date can’t move.';
       if (needsApproval && !s.approver) e.approver_email = 'Choose who approves this (usually your manager).';
       else if (s.approver && !EMAIL_RE.test(s.approver)) e.approver_email = 'Enter a full email address.';
       else if (s.approver === me.email) e.approver_email = 'Someone else needs to approve your request.';
@@ -435,7 +428,6 @@ async function wizard(main, ctx, ref) {
       brief: cleanBriefForSave(),
       due_date: s.due_date || null,
       priority: s.priority,
-      rush_reason: s.rush_reason,
       department: s.department || null,
     };
     if (approverValid() && (s.approver || '') !== (r.approver_email || '')) p.approver_email = s.approver || null;
@@ -883,9 +875,6 @@ ${v ?? ''}</textarea>
       <option value="__other" ${s.approverOther ? 'selected' : ''}>Someone else (enter their email)…</option>`;
   }
   function timingHtml() {
-    const early = earliest();
-    const lead = leadDaysFor(type, s.brief, settings.leadDays);
-    const rush = isRush();
     return html`<div class="fields">
       <div class="field" data-field="due_date">
         <label class="label" for="f-due_date"
@@ -904,46 +893,16 @@ ${v ?? ''}</textarea>
             aria-invalid="${s.errors.due_date ? 'true' : 'false'}"
             aria-required="true"
           />
-          ${!s.due_date || s.due_date < early ? html`<button type="button" class="btn sm" data-use-date="${early}">Use ${fmtDate(early)}</button>` : ''}
         </div>
-        <div class="turnaround ${rush ? 'rush' : s.due_date ? 'ok' : ''}" id="turn">
-          ${icon(rush ? 'zap' : 'clock', 18)}
+        <div class="turnaround ok" id="turn">
+          ${icon('clock', 18)}
           <p>
-            ${
-              rush
-                ? html`<strong>That’s a rush.</strong> ${type.name} usually takes ${lead} business
-                    days${needsApproval ? ' plus a day for approval' : ''}, so the standard date is
-                    <strong>${fmtDate(early, { weekday: true })}</strong>. Marketing will try; tell them why the date can’t move.`
-                : html`<strong>Standard turnaround:</strong> ${lead} business days${needsApproval ? ' after approval' : ''}. Ready by
-                    <strong>${fmtDate(early, { weekday: true })}</strong> if you submit
-                    today.${s.due_date ? html` Your date gives the team ${icon('check', 14)} enough time.` : ''}`
-            }
+            <strong>How timing works:</strong> whoever picks up your request estimates when it will be ready. You’ll see that date on the
+            request and get a notification, with a flag if it’s later than the date you need.
           </p>
         </div>
         ${errEl('due_date', s.errors.due_date)}
       </div>
-      ${
-        rush
-          ? html`<div class="field" data-field="rush_reason">
-              <label class="label" for="f-rush_reason"
-                >Why can’t the date move?<span class="req" aria-hidden="true"> *</span
-                ><span class="visually-hidden"> (required)</span></label
-              >
-              <textarea
-                class="textarea short"
-                id="f-rush_reason"
-                data-top="rush_reason"
-                rows="2"
-                maxlength="1000"
-                placeholder="e.g. The conference is on the 14th and the booth ships on the 7th."
-                aria-describedby="e-rush_reason"
-                aria-invalid="${s.errors.rush_reason ? 'true' : 'false'}"
-              >
-${s.rush_reason}</textarea>
-              ${errEl('rush_reason', s.errors.rush_reason)}
-            </div>`
-          : ''
-      }
       <fieldset class="field fgroup" data-field="priority">
         <legend class="label">How important is it?</legend>
         <div class="choices with-hints four" role="radiogroup">
@@ -1181,8 +1140,7 @@ ${s.rush_reason}</textarea>
       ${sec(0, 'The brief', [row('Title', s.title, 'title'), ...fieldRows(baseStepFields)])}
       ${type.fields.length ? sec(1, 'Details', fieldRows([...typeIds])) : ''}
       ${sec(2, 'Timing & people', [
-        row('Needed by', s.due_date ? fmtDate(s.due_date, { weekday: true, year: true }) + (isRush() ? ' · rush' : '') : '', 'due_date'),
-        isRush() ? row('Why rush', s.rush_reason, 'rush_reason') : '',
+        row('Needed by', s.due_date ? fmtDate(s.due_date, { weekday: true, year: true }) : '', 'due_date'),
         row('Priority', PRIORITIES.find((p) => p.value === s.priority)?.label, 'priority'),
         needsApproval ? row('Approver', s.approver ? nameOf(s.approver, names) : '', 'approver_email') : row('Approval', 'Not needed', 'x'),
         row('Team', s.department, 'department'),
@@ -1208,8 +1166,6 @@ ${s.rush_reason}</textarea>
   // ----------------------------------------------------------------- side panel
   function renderSide() {
     const sc = score();
-    const early = earliest();
-    const lead = leadDaysFor(type, s.brief, settings.leadDays);
     side.innerHTML = String(
       html`<div class="side-card card">
         <div class="side-type">
@@ -1244,12 +1200,9 @@ ${s.rush_reason}</textarea>
             : ''
         }
         <div class="side-sec">
-          <p class="side-h">${icon('clock', 16)}Turnaround</p>
-          <p class="small">
-            Usually <strong>${lead} business days</strong>${needsApproval ? ' after approval' : ''}. Submit today → ready by
-            <strong>${fmtDate(early)}</strong>.
-          </p>
-          ${s.due_date ? html`<p class="small ${isRush() ? 'rush-text' : ''}">You need it by <strong>${fmtDate(s.due_date, { weekday: true })}</strong>${isRush() ? ' (rush)' : ''}.</p>` : ''}
+          <p class="side-h">${icon('clock', 16)}Timing</p>
+          ${s.due_date ? html`<p class="small">You need it by <strong>${fmtDate(s.due_date, { weekday: true })}</strong>.</p>` : ''}
+          <p class="small">When marketing picks it up, they’ll estimate a delivery date and you’ll be notified.</p>
         </div>
         <div class="side-sec">
           <p class="side-h">${icon('route', 16)}What happens next</p>
@@ -1350,9 +1303,6 @@ ${s.rush_reason}</textarea>
         delete s.errors.due_date;
         rerenderKeepFocus();
       }
-    } else if (top === 'rush_reason') {
-      s.rush_reason = t.value;
-      if (t.value.trim()) setFieldError('rush_reason', '');
     } else if (top === 'priority') s.priority = t.value;
     else if (top === 'department') s.department = t.value;
     else if (top === 'approver_select') {

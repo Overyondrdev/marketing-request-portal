@@ -79,7 +79,15 @@ export const ACTIONS = {
     to: null,
     needs: ['assignee'],
   },
-  start: { label: 'Start work', from: ['approved'], who: ['marketing'], to: 'in_progress' },
+  // Starting work means estimating when it will be ready; the estimate can be updated any time after.
+  start: { label: 'Start work', from: ['approved'], who: ['marketing'], to: 'in_progress', needs: ['estimate'] },
+  estimate: {
+    label: 'Update estimate',
+    from: ['approved', 'in_progress', 'on_hold', 'needs_info', 'in_review'],
+    who: ['assignee', 'lead'],
+    to: null,
+    needs: ['estimate'],
+  },
   deliver: { label: 'Send for review', from: ['in_progress'], who: ['assignee', 'marketing'], to: 'in_review', needs: ['note'] },
   request_changes: { label: 'Request changes', from: ['in_review'], who: ['requester', 'approver'], to: 'in_progress', needs: ['note'] },
   accept: { label: 'Accept and close', from: ['in_review'], who: ['requester'], to: 'completed' },

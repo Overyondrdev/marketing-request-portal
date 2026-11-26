@@ -101,7 +101,6 @@ export async function types(env: Env, me: Me) {
       id: t.id,
       name: t.name,
       category: t.category,
-      leadDays: t.leadDays,
       requiresApproval: t.requiresApproval,
       settings: s[t.id] || null,
     })),
@@ -123,19 +122,15 @@ export async function saveType(env: Env, me: Me, typeId: string, request: Reques
     }
     next.default_assignee = a;
   }
-  if ('lead_days' in b) {
-    const n = b.lead_days === null || b.lead_days === '' ? null : Number(b.lead_days);
-    if (n !== null && !(Number.isInteger(n) && n >= 0 && n <= 120)) fail(400, 'Turnaround is 0 to 120 business days.');
-    next.lead_days = n;
-  }
   if ('requires_approval' in b) next.requires_approval = b.requires_approval === null ? null : b.requires_approval ? 1 : 0;
   await env.DB.prepare(
-    `INSERT INTO type_settings (type_id, enabled, default_assignee, lead_days, requires_approval, updated_by, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(type_id) DO UPDATE SET enabled = excluded.enabled, default_assignee = excluded.default_assignee,
-       lead_days = excluded.lead_days, requires_approval = excluded.requires_approval, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
+    `INSERT INTO type_settings (type_id, enabled, default_assignee, requires_approval, updated_by, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(type_id) DO UPDATE SET enabled = excluded.enabled, default_assignee = excluded.default_assignee,
+       requires_approval = excluded.requires_approval, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
   )
-    .bind(typeId, next.enabled, next.default_assignee, next.lead_days, next.requires_approval, me.email, now())
+    .bind(typeId, next.enabled, next.default_assignee, next.requires_approval, me.email, now())
     .run();
-  await audit(env, me.email, 'type_updated', typeId, next);
+  const { lead_days: _unused, ...logged } = next as any;
+  await audit(env, me.email, 'type_updated', typeId, logged);
   return types(env, me);
 }

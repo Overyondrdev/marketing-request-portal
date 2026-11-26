@@ -1,4 +1,4 @@
-// Help: how requests move, what each role does, turnaround times and FAQs.
+// Help: how requests move, what each role does, how timing works and FAQs.
 
 import { store, loadSettings } from '../lib/store.js';
 import { html, icon, setTitle } from '../lib/ui.js';
@@ -11,8 +11,8 @@ const FAQ = [
     'Your manager, by default (set them in Settings). You can choose another approver on any request. Some quick requests, like brand files and internal communications, don’t need approval.',
   ],
   [
-    'What if I need it sooner than the usual turnaround?',
-    'Pick the date you need. If it is earlier than the usual turnaround, the request is marked rush and you say why. Marketing will tell you quickly if the date can’t be met.',
+    'How do I know when my request will be ready?',
+    'When someone in marketing starts your request, they estimate the date it will be ready. You see that date on the request and get a notification, and again if the estimate changes. If it is later than the date you asked for, it is flagged so you can talk it through in the request.',
   ],
   [
     'Marketing asked me a question. What happens to my request?',
@@ -76,8 +76,13 @@ export default async function help(main) {
       </ul>
       ${store.me && store.me.role === 'requester' ? '' : html`<p class="small muted">You can manage people and routing under <a href="/admin" data-link>People &amp; routing</a> if you’re a lead or admin.</p>`}
 
-      <h2>Usual turnaround</h2>
-      <p>Business days from approval. Some answers shorten it (for example, polishing a few slides is quicker than a new deck).</p>
+      <h2>How timing works</h2>
+      <p>
+        Tell us the date you need the work by, and set a priority. There is no fixed turnaround per request type: the person who picks up
+        your request estimates when it will be ready, based on the brief and what else the team is working on. You see the estimate on the
+        request, with a flag if it’s later than your date, and you’re notified whenever it changes.
+      </p>
+      <h2>What you can ask for</h2>
       ${byCat.map(
         (g) =>
           html`<h3>${g.c.name}</h3>
@@ -85,10 +90,7 @@ export default async function help(main) {
               ${g.types.map(
                 (t) =>
                   html`<dt>${t.name}</dt>
-                    <dd>
-                      ${settings[t.id]?.leadDays ?? t.leadDays}
-                      days${(settings[t.id]?.requiresApproval ?? t.requiresApproval) ? '' : ' · no approval needed'}
-                    </dd>`,
+                    <dd>${t.summary}${(settings[t.id]?.requiresApproval ?? t.requiresApproval) ? '' : ' No approval needed.'}</dd>`,
               )}
             </dl>`,
       )}
