@@ -32,4 +32,6 @@ Resend email, live at https://requests.overyondrdev.com behind Cloudflare Access
 - **Notifications** go through `notify()` in `src/lib/notify.ts`. Mark ones that need the recipient to act
   `actionNeeded` (always emailed); plain updates respect the person's email setting.
 - Ask before adding a runtime dependency. Dev dependencies need a reason in the PR.
-- After changing `wrangler.jsonc`, run `npm run cf-typegen`.
+- After changing `wrangler.jsonc`, run `npm run cf-typegen` (move `.dev.vars` aside first so local values stay out of the types).
+- The app in `public/` is bundled into the Worker by `scripts/build-static.mjs` (runs before dev, deploy, typecheck and
+  tests). A new file type needs a content type there.
