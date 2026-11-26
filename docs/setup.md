@@ -70,27 +70,23 @@ acted.
 
 1. **Account.** Sign up at resend.com with a shared marketing or web-admin address and invite the people who should
    manage email (Settings → Team).
-2. **Domain.** Domains → **Add domain** → `mail.overyondr.com` (region: US East). A subdomain keeps this portal's
-   sending reputation separate from everyone's own `@overyondr.com` mail. It's the sender in `MAIL_FROM`
-   (`requests@mail.overyondr.com`); if you choose another domain, change `MAIL_FROM` in `wrangler.jsonc` to match.
-3. **DNS.** Resend shows the records to add: an MX and a TXT (SPF) record for its bounce subdomain, and a TXT (DKIM)
-   record. Add them **exactly as shown** wherever `overyondr.com`'s DNS is managed (today that's the Squarespace
-   domain settings), then press **Verify DNS Records** in Resend. Verification usually takes minutes, sometimes hours.
-   If `overyondr.com` has no DMARC record yet, add TXT `_dmarc.mail` = `v=DMARC1; p=none;`.
-   Using `overyondrdev.com` instead (already on Cloudflare DNS)? Resend can add the records to Cloudflare for you
-   from the domain page.
-4. **Tracking off.** On the domain's settings, turn **open tracking** and **click tracking** off: these are internal
-   notifications, and click tracking would rewrite links to the portal through Resend.
-5. **API key.** API Keys → **Create API key**: name `yondr-marketing-requests`, permission **Sending access**,
-   domain `mail.overyondr.com`. Copy it (it's shown once), then store it as a Worker secret:
-   `npx wrangler secret put RESEND_API_KEY` (or in the dashboard, section 2). Never commit it or paste it in chat.
-6. **Switch on.** In `wrangler.jsonc` set `"EMAIL_ENABLED": "on"` and merge the pull request. Email sends only when
-   this is `on` **and** the key is set; Settings in the portal tells people whether email is on.
-7. **Test.** Submit a request with yourself as someone else's approver (or ask a colleague), and check the inbox and
-   Resend → **Emails** (each message, its status and any bounce). Worker logs show `resend <status>` if a send fails.
-8. **Inbox placement.** If Gmail files the first emails as spam, a Google Workspace admin can add
-   `mail.overyondr.com` under Admin console → Apps → Google Workspace → Gmail → Spam, phishing and malware →
-   Approved senders.
+2. **Domain.** Domains → **Add domain** → `overyondrdev.com` (region: North Virginia, us-east-1). Email is sent from
+   `marketing@overyondrdev.com` (`MAIL_FROM` in `wrangler.jsonc`).
+3. **DNS.** Resend shows its records: a TXT (DKIM) record at `resend._domainkey`, and an MX and a TXT (SPF) record at
+   `send`. Add each in Cloudflare (`overyondrdev.com` → DNS → Records → Add record), copied exactly, with **Proxy
+   status: DNS only**. Don't change the existing records: `_dmarc` (`p=reject`) stays as it is (Resend's DKIM signature
+   passes it), and the `cf-bounce` records belong to Cloudflare Email Service. Then press **Verify DNS records**.
+4. **Tracking off.** On the domain page, turn **open tracking** and **click tracking** off.
+5. **API key.** API Keys → **Create API key**: name `yondr-marketing-requests`, permission **Sending access**, domain
+   `overyondrdev.com`. Copy it (it's shown once).
+6. **Store the key.** Cloudflare → Workers & Pages → `yondr-marketing-requests` → Settings → Variables and Secrets →
+   **Add** → type **Secret**, name `RESEND_API_KEY`, paste the key → **Deploy**. Never commit it or paste it in chat.
+7. **Switch on.** Set `"EMAIL_ENABLED": "on"` in `wrangler.jsonc` and deploy. Email sends only when this is `on`
+   **and** the key is set.
+8. **Test.** Submit a request with someone else as approver and check the inbox and Resend → **Emails**.
+9. **Replies.** Most emails reply to the person who acted. Reminders come from `marketing@overyondrdev.com`, which has
+   no inbox; to catch replies, turn on Cloudflare **Email Routing** for `overyondrdev.com` and forward `marketing@` to
+   a real address.
 
 Check Resend's plan limits (daily and monthly emails) against the team's volume; every notification that needs
 someone to act is emailed, plus plain updates for people who leave "Email me updates" on. Locally, emails are only

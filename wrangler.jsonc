@@ -29,8 +29,8 @@
     // Only these email domains may use the portal, even if Access lets someone else through.
     "ALLOWED_EMAIL_DOMAINS": "overyondr.com",
     // Sender for notification emails (Resend). The domain must be verified in Resend (docs/setup.md).
-    "MAIL_FROM": "requests@mail.overyondr.com",
-    "MAIL_FROM_NAME": "Yondr Marketing Requests",
+    "MAIL_FROM": "marketing@overyondrdev.com",
+    "MAIL_FROM_NAME": "Yondr Marketing",
     // "on" sends email (needs the RESEND_API_KEY secret); "off" keeps notifications in-app (and Slack) only.
     "EMAIL_ENABLED": "off",
   },
