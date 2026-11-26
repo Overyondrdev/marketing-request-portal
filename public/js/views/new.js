@@ -116,9 +116,9 @@ async function picker(main, ctx) {
     }
     const cats = CATEGORIES.filter((c) => (!state.cat || c.id === state.cat) && pool.some((t) => t.category === c.id));
     let i = 0;
-    resultsEl.innerHTML = String(cats.map((c) => html`<section class="cat-section" aria-labelledby="cat-${c.id}">
+    resultsEl.innerHTML = String(html`${cats.map((c) => html`<section class="cat-section" aria-labelledby="cat-${c.id}">
       <div class="cat-head"><span class="cat-ico">${icon(c.icon, 18)}</span><div><h2 id="cat-${c.id}">${c.name}</h2><p class="small muted">${c.blurb}</p></div></div>
-      <div class="type-grid">${pool.filter((t) => t.category === c.id).map((t) => card(t, i++))}</div></section>`));
+      <div class="type-grid">${pool.filter((t) => t.category === c.id).map((t) => card(t, i++))}</div></section>`)}`);
   }
   renderCats();
   renderResults();
@@ -462,12 +462,12 @@ async function wizard(main, ctx, ref) {
   // ----------------------------------------------------------------- steps
   function renderSteps() {
     const errs = s.step === 4 ? allErrors() : null;
-    main.querySelector('[data-steps]').innerHTML = String(STEPS.map((st, i) => {
+    main.querySelector('[data-steps]').innerHTML = String(html`${STEPS.map((st, i) => {
       const done = i < s.step || (i < 4 && Object.keys(stepErrors(i)).length === 0 && (i !== 0 || s.title));
       const bad = errs && Object.keys(errs).some((k) => fieldStep(k) === i);
       return html`<li><button type="button" class="step-btn ${i === s.step ? 'current' : ''} ${done && i !== s.step ? 'done' : ''} ${bad ? 'bad' : ''}" data-goto="${i}" ${i === s.step ? html`aria-current="step"` : ''}>
         <span class="step-n">${done && i !== s.step && !bad ? icon('check', 14) : i + 1}</span><span class="step-l">${st.label}</span></button></li>`;
-    }));
+    })}`);
     main.querySelector('[data-step-mobile]').innerHTML = String(html`<span>Step ${s.step + 1} of ${STEPS.length} · <strong>${STEPS[s.step].label}</strong></span><span class="bar"><span style="--w:${((s.step + 1) / STEPS.length) * 100}%"></span></span>`);
   }
 
@@ -488,7 +488,7 @@ async function wizard(main, ctx, ref) {
     if (s.step === 0) {
       inner = html`<div class="field" data-field="title"><label class="label" for="f-title">Give it a short name<span class="req" aria-hidden="true"> *</span><span class="visually-hidden"> (required)</span></label>
           <p class="hint" id="h-title">How you’d refer to it in a meeting. It’s the title everyone sees.</p>
-          <input class="input input-lg" id="f-title" type="text" data-top="title" maxlength="160" value="${s.title}" placeholder="e.g. ${placeholderTitle(type)}" aria-describedby="h-title e-title" aria-invalid="${s.errors.title ? 'true' : 'false'}" aria-required="true" />
+          <input class="input input-lg" id="f-title" type="text" data-top="title" maxlength="160" value="${s.title}" placeholder="${placeholderTitle(type)}" aria-describedby="h-title e-title" aria-invalid="${s.errors.title ? 'true' : 'false'}" aria-required="true" />
           ${errEl('title', s.errors.title)}</div>
         ${stepFields(baseStepFields)}`;
     } else if (s.step === 1) {
@@ -575,8 +575,8 @@ async function wizard(main, ctx, ref) {
     </div>`;
   }
   function watchersHtml() {
-    return s.watchers.map((w) => html`<li class="watcher">${avatar(w.email, nameOf(w.email, names), 'sm')}<span>${nameOf(w.email, names)}${w.email === me.email ? ' (you)' : ''}</span>
-      <button type="button" class="icon-btn" data-watch-del="${w.email}" aria-label="Remove ${nameOf(w.email, names)}">${icon('x', 16)}</button></li>`);
+    return html`${s.watchers.map((w) => html`<li class="watcher">${avatar(w.email, nameOf(w.email, names), 'sm')}<span>${nameOf(w.email, names)}${w.email === me.email ? ' (you)' : ''}</span>
+      <button type="button" class="icon-btn" data-watch-del="${w.email}" aria-label="Remove ${nameOf(w.email, names)}">${icon('x', 16)}</button></li>`)}`;
   }
 
   // ----------------------------------------------------------------- files step
@@ -596,14 +596,14 @@ async function wizard(main, ctx, ref) {
     </div>`;
   }
   function uploadsHtml() {
-    return s.uploads.map((u) => html`<li class="upload ${u.error ? 'failed' : ''}">${icon(u.error ? 'alert' : 'upload', 18)}<span class="up-name">${u.name}</span>
-      ${u.error ? html`<span class="small bad-text">${u.error}</span>` : html`<span class="up-bar" role="progressbar" aria-label="Uploading ${u.name}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(u.p * 100)}"><span style="--w:${Math.round(u.p * 100)}%"></span></span>`}</li>`);
+    return html`${s.uploads.map((u) => html`<li class="upload ${u.error ? 'failed' : ''}">${icon(u.error ? 'alert' : 'upload', 18)}<span class="up-name">${u.name}</span>
+      ${u.error ? html`<span class="small bad-text">${u.error}</span>` : html`<span class="up-bar" role="progressbar" aria-label="Uploading ${u.name}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(u.p * 100)}"><span style="--w:${Math.round(u.p * 100)}%"></span></span>`}</li>`)}`;
   }
   function filesListHtml() {
-    return s.files.map((f) => html`<li class="file">
+    return html`${s.files.map((f) => html`<li class="file">
       ${/^image\/(png|jpeg|gif|webp|avif)$/.test(f.content_type || '') ? html`<img class="thumb" src="/api/files/${f.id}?inline=1" alt="" loading="lazy" />` : html`<span class="thumb ico">${icon('file', 20)}</span>`}
       <span class="file-txt"><a href="/api/files/${f.id}" download>${f.name}</a><span class="tiny muted">${bytes(f.size)} · added ${ago(f.created_at)}</span></span>
-      <button type="button" class="icon-btn" data-file-del="${f.id}" aria-label="Remove ${f.name}">${icon('trash', 18)}</button></li>`);
+      <button type="button" class="icon-btn" data-file-del="${f.id}" aria-label="Remove ${f.name}">${icon('trash', 18)}</button></li>`)}`;
   }
   async function addFiles(list) {
     for (const file of list) {
@@ -681,7 +681,7 @@ async function wizard(main, ctx, ref) {
       'You review and accept',
       'Delivered',
     ];
-    return steps.map((t, i) => html`<li><span class="ns-dot">${i + 1}</span>${t}</li>`);
+    return html`${steps.map((t, i) => html`<li><span class="ns-dot">${i + 1}</span>${t}</li>`)}`;
   }
 
   // ----------------------------------------------------------------- side panel
@@ -1005,11 +1005,7 @@ async function wizard(main, ctx, ref) {
   return cleanup;
 }
 
+// A title hint. Types can set `titleExample` in the catalog; otherwise a generic pattern.
 function placeholderTitle(type) {
-  return ({
-    presentation: 'District superintendent pitch deck', trade_show: 'ASCD Annual booth kit', paid_ads: 'Spring venue awareness ads',
-    copywriting: 'Back-to-school email copy', case_study: 'Case study: first-year results', collateral: 'Courts one-pager refresh',
-    email_campaign: 'Webinar invitation email', web_page: 'Landing page for the summit', social_media: 'LinkedIn posts for launch week',
-    video: 'Principal testimonial video', swag: 'Tees for the field team', webinar: 'Phone-free schools webinar',
-  })[type.id] || `${type.name} for …`;
+  return type.titleExample || `${type.name} for <audience, event or campaign>`;
 }
