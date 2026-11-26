@@ -286,7 +286,11 @@ async function wizard(main, ctx, ref) {
   let chain = Promise.resolve();
   function scheduleSave() {
     s.dirty = true;
-    if (!isDraft) return renderFoot();
+    if (!isDraft) {
+      // Toggle in place: re-rendering here (on a blur-triggered change) would swallow a click on the button.
+      main.querySelectorAll('[data-foot] [data-savechanges]').forEach((b) => (b.disabled = false));
+      return renderSaveState();
+    }
     clearTimeout(timer);
     timer = setTimeout(() => queueSave(), 700);
     s.saveState = 'pending';
