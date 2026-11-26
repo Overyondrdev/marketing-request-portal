@@ -11,6 +11,7 @@ import { reminders } from './cron';
 import { identify } from './lib/access';
 import { HttpError, json, secure } from './lib/http';
 import { inbox, markRead } from './lib/notify';
+import { serveStatic } from './lib/static';
 import { signIn, type Me } from './lib/users';
 
 type Handler = (env: Env, ctx: ExecutionContext, me: Me, req: Request, url: URL, params: string[]) => Promise<Response> | Response;
@@ -74,14 +75,14 @@ async function handle(request: Request, env: Env, ctx: ExecutionContext): Promis
   const api = url.pathname.startsWith('/api/');
 
   // Brand files and fonts are public (they're on overyondr.com anyway); everything else needs a Yondr sign-in.
-  if (url.pathname.startsWith('/brand/') && request.method === 'GET') return env.ASSETS.fetch(request);
+  if (url.pathname.startsWith('/brand/') && ['GET', 'HEAD'].includes(request.method)) return serveStatic(request, url.pathname);
 
   const who = await identify(request, env);
   if ('error' in who) return denied(who.error, api);
 
   if (!api) {
     if (!['GET', 'HEAD'].includes(request.method)) return new Response('Method not allowed', { status: 405 });
-    return env.ASSETS.fetch(request);
+    return serveStatic(request, url.pathname);
   }
 
   // Cross-site request forgery: state-changing API calls must come from this origin with our header,

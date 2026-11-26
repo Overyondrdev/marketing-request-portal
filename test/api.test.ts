@@ -87,6 +87,29 @@ describe('access', () => {
   });
 });
 
+describe('app files', () => {
+  const get = (path: string, headers: Record<string, string> = {}) =>
+    worker.fetch(new Request('https://requests.example' + path, { headers: { 'x-dev-email': SAM, ...headers } }));
+  it('serves the app shell for app routes, files with types, and 404 for missing files', async () => {
+    for (const p of ['/', '/requests/MR-1001', '/new/presentation']) {
+      const r = await get(p);
+      expect(r.status).toBe(200);
+      expect(r.headers.get('content-type')).toContain('text/html');
+      expect(r.headers.get('content-security-policy')).toContain("script-src 'self'");
+    }
+    expect((await get('/css/base.css')).headers.get('content-type')).toContain('text/css');
+    expect((await get('/js/app.js')).headers.get('content-type')).toContain('javascript');
+    expect((await get('/brand/fonts/inter-tight-latin-400-normal.woff2')).headers.get('content-type')).toBe('font/woff2');
+    expect((await get('/css/missing.css')).status).toBe(404);
+    const etag = (await get('/js/app.js')).headers.get('etag')!;
+    expect((await get('/js/app.js', { 'if-none-match': etag })).status).toBe(304);
+  });
+  it('refuses app files to people outside Yondr', async () => {
+    const r = await worker.fetch(new Request('https://requests.example/js/app.js', { headers: { 'x-dev-email': 'eve@example.com' } }));
+    expect(r.status).toBe(403);
+  });
+});
+
 describe('request lifecycle', () => {
   it('refuses to submit an incomplete brief, with field-level errors', async () => {
     const { request } = await call(SAM, 'POST', '/api/requests', { type_id: 'trade_show' });

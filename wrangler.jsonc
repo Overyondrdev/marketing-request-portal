@@ -18,14 +18,9 @@
   "preview_urls": false,
   "routes": [{ "pattern": "requests.overyondrdev.com", "custom_domain": true }],
 
-  // The app (public/) is served as static assets, but only after the Worker has checked who is signed in
-  // (run_worker_first). Unknown paths fall back to index.html so /requests/MR-1001 etc. work on reload.
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    "run_worker_first": true,
-    "not_found_handling": "single-page-application",
-  },
+  // The app (public/) is bundled into the script by scripts/build-static.mjs and served by the Worker, only after it
+  // has checked who is signed in. One script upload per deploy; no separate asset upload.
+  "build": { "command": "node scripts/build-static.mjs", "watch_dir": "public" },
 
   "vars": {
     "APP_URL": "https://requests.overyondrdev.com",
