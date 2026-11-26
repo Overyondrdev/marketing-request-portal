@@ -1,0 +1,5 @@
+# Deploy, data and access-control changes need a web admin's review.
+/wrangler.jsonc      @Yondr-Chad
+/migrations/         @Yondr-Chad
+/src/lib/access.ts   @Yondr-Chad
+/.github/            @Yondr-Chad

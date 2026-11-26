@@ -1,0 +1,61 @@
+// yondr-marketing-requests: the Yondr marketing request portal at https://requests.overyondrdev.com.
+// Cloudflare Access ("overyondrdev.com (Yondr website dev)") covers *.overyondrdev.com, so only people who sign in
+// with an @overyondr.com email reach the Worker; the Worker re-checks Access's signed token on every request.
+//
+// Secrets (set with `npx wrangler secret put <NAME>`, never committed):
+//   OWNER_EMAILS       comma-separated emails that are always admins (required for the first admin)
+//   RESEND_API_KEY     Resend API key (sending access) for notification email
+//   SLACK_WEBHOOK_URL  optional incoming-webhook URL for a marketing channel
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "yondr-marketing-requests",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "account_id": "3fac6c19097c5692e17198cffa818085",
+
+  // No public *.workers.dev or preview URLs: they would bypass the Access login.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "requests.overyondrdev.com", "custom_domain": true }],
+
+  // The app (public/) is served as static assets, but only after the Worker has checked who is signed in
+  // (run_worker_first). Unknown paths fall back to index.html so /requests/MR-1001 etc. work on reload.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application",
+  },
+
+  "vars": {
+    "APP_URL": "https://requests.overyondrdev.com",
+    // Cloudflare Access team whose signed tokens the Worker checks (src/lib/access.ts).
+    "ACCESS_TEAM_DOMAIN": "overyondr.cloudflareaccess.com",
+    // Only these email domains may use the portal, even if Access lets someone else through.
+    "ALLOWED_EMAIL_DOMAINS": "overyondr.com",
+    // Sender for notification emails (Resend). The domain must be verified in Resend (docs/setup.md).
+    "MAIL_FROM": "requests@mail.overyondr.com",
+    "MAIL_FROM_NAME": "Yondr Marketing Requests",
+    // "on" sends email (needs the RESEND_API_KEY secret); "off" keeps notifications in-app (and Slack) only.
+    "EMAIL_ENABLED": "off",
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yondr-marketing-requests-db",
+      "database_id": "78cc06d7-c778-47eb-b630-6b9b0da5c43c",
+      "migrations_dir": "migrations",
+    },
+  ],
+
+  // Briefs' reference files and deliverables. Private: files are only served through the Worker, after a permission check.
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "yondr-marketing-requests-files" }],
+
+  // Reminders: approvals waiting, proofs waiting for review, due soon and overdue work. Weekdays 14:05 and 19:05 UTC
+  // (9:05 and 14:05 US Eastern in winter).
+  "triggers": { "crons": ["5 14,19 * * 1-5"] },
+
+  "observability": { "enabled": true },
+  "upload_source_maps": true,
+}
