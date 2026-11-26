@@ -26,3 +26,43 @@ describe('identify', () => {
     });
   });
 });
+
+describe('Yondr Google sign-in session', () => {
+  async function keys() {
+    const kp = (await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])) as CryptoKeyPair;
+    const pub = (await crypto.subtle.exportKey('jwk', kp.publicKey)) as JsonWebKey;
+    return { kp, pub: JSON.stringify({ kty: pub.kty, crv: pub.crv, x: pub.x, y: pub.y, kid: 'test' }) };
+  }
+  const b64u = (b: ArrayBuffer | Uint8Array) =>
+    btoa(String.fromCharCode(...new Uint8Array(b)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  async function token(kp: CryptoKeyPair, claims: Record<string, unknown>) {
+    const enc = (o: unknown) => b64u(new TextEncoder().encode(JSON.stringify(o)));
+    const h = enc({ alg: 'ES256', typ: 'JWT', kid: 'test' });
+    const p = enc(claims);
+    const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, kp.privateKey, new TextEncoder().encode(`${h}.${p}`));
+    return `${h}.${p}.${b64u(sig)}`;
+  }
+  const now = () => Math.floor(Date.now() / 1000);
+  const claims = (over = {}) => ({
+    typ: 'session',
+    iss: 'https://auth.overyondrdev.com',
+    aud: 'overyondrdev.com',
+    email: 'sam@overyondr.com',
+    exp: now() + 60,
+    ...over,
+  });
+  const req = (t: string) => new Request('https://x/', { headers: { cookie: `other=1; yondr_session=${t}` } });
+
+  it('signs in with a valid session cookie, and refuses forged or foreign ones', async () => {
+    const { kp, pub } = await keys();
+    const e = { ...env, YONDR_AUTH_PUBLIC_JWK: pub };
+    expect(await identify(req(await token(kp, claims())), e)).toEqual({ email: 'sam@overyondr.com' });
+    expect(await identify(req(await token(kp, claims({ email: 'eve@gmail.com' }))), e)).toEqual({ error: 'unauthenticated' });
+    expect(await identify(req(await token(kp, claims({ exp: now() - 5 }))), e)).toEqual({ error: 'unauthenticated' });
+    const other = await keys();
+    expect(await identify(req(await token(other.kp, claims())), e)).toEqual({ error: 'unauthenticated' });
+  });
+});

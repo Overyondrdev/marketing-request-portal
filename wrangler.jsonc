@@ -26,6 +26,8 @@
     "APP_URL": "https://requests.overyondrdev.com",
     // Cloudflare Access team whose signed tokens the Worker checks (src/lib/access.ts).
     "ACCESS_TEAM_DOMAIN": "overyondr.cloudflareaccess.com",
+    // Public key of the Yondr sign-in (auth.overyondrdev.com) that signs session cookies. Public: safe to commit.
+    "YONDR_AUTH_PUBLIC_JWK": "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"BpCjLJMykOsJbtPTm63rdbw2BzRUTNTz3jj9LWqK6AM\",\"y\":\"RyW0y7Dki1BQ6GnYdD-4FPovGYfoaMmDgr21lNU7xXQ\",\"kid\":\"yondr-2026-11-26-a3a7e6\"}",
     // Only these email domains may use the portal, even if Access lets someone else through.
     "ALLOWED_EMAIL_DOMAINS": "overyondr.com",
     // Sender for notification emails (Resend). The domain must be verified in Resend (docs/setup.md).

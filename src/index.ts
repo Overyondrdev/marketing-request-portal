@@ -9,6 +9,7 @@ import { people, savePerson, saveType, types } from './api/admin';
 import { catalogSettings, directory, saveProfile, whoami } from './api/me';
 import { reminders } from './cron';
 import { identify } from './lib/access';
+import { loginUrl, logoutUrl } from './lib/yondr-session.js';
 import { HttpError, json, secure } from './lib/http';
 import { inbox, markRead } from './lib/notify';
 import { serveStatic } from './lib/static';
@@ -62,7 +63,7 @@ function denied(kind: 'unauthenticated' | 'forbidden_domain', api: boolean): Res
     `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in · Yondr</title>
 <body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#1C300B;color:#F4F9D1;font:16px/1.5 Arial,sans-serif;padding:24px">
 <main style="max-width:420px;text-align:center"><h1 style="font:500 28px/1.2 Georgia,serif;margin:0 0 12px">Yondr marketing requests</h1>
-<p style="margin:0 0 20px">${msg}</p><a href="/cdn-cgi/access/logout" style="color:#DAFF6B;font-weight:700">Sign in again</a></main></body></html>`,
+<p style="margin:0 0 20px">${msg}</p><a href="${logoutUrl('https://requests.overyondrdev.com/')}" style="color:#DAFF6B;font-weight:700">Sign in with another account</a></main></body></html>`,
     {
       status: kind === 'forbidden_domain' ? 403 : 401,
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
@@ -78,6 +79,9 @@ async function handle(request: Request, env: Env, ctx: ExecutionContext): Promis
   if (url.pathname.startsWith('/brand/') && ['GET', 'HEAD'].includes(request.method)) return serveStatic(request, url.pathname);
 
   const who = await identify(request, env);
+  // Not signed in: pages go to Google sign-in and come back here; the API answers 401 (the app then reloads).
+  if ('error' in who && who.error === 'unauthenticated' && !api && ['GET', 'HEAD'].includes(request.method))
+    return new Response(null, { status: 302, headers: { location: loginUrl(request), 'cache-control': 'no-store' } });
   if ('error' in who) return denied(who.error, api);
 
   if (!api) {
