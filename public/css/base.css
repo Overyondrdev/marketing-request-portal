@@ -691,6 +691,7 @@ main {
 }
 /* Toggle switch: <label class="switch"><input type="checkbox" role="switch"><span></span> Label</label> */
 .switch {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 12px;
@@ -1837,4 +1838,9 @@ details.faq p {
   .settings-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.stat .n,
+.dot-count {
+  font-variant-numeric: lining-nums tabular-nums;
 }
