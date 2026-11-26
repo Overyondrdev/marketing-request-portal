@@ -6,7 +6,7 @@ What already exists (Yondr Cloudflare account `3fac6c19097c5692e17198cffa818085`
 - Private R2 bucket `yondr-marketing-requests-files`
 
 Everything below is one-time. Handing the Cloudflare part to an agent? Give it
-[cloudflare-setup-runbook.md](cloudflare-setup-runbook.md).
+[cloudflare-setup-chrome.md](cloudflare-setup-chrome.md) (step-by-step for a browser agent in Chrome).
 
 ## 1. Connect deploys (Cloudflare Workers Builds)
 
