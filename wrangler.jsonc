@@ -32,7 +32,7 @@
     "MAIL_FROM": "marketing@overyondrdev.com",
     "MAIL_FROM_NAME": "Yondr Marketing",
     // "on" sends email (needs the RESEND_API_KEY secret); "off" keeps notifications in-app (and Slack) only.
-    "EMAIL_ENABLED": "off",
+    "EMAIL_ENABLED": "on",
   },
 
   "d1_databases": [
