@@ -5,7 +5,8 @@ What already exists (Yondr Cloudflare account `3fac6c19097c5692e17198cffa818085`
 - D1 database `yondr-marketing-requests-db` (`78cc06d7-c778-47eb-b630-6b9b0da5c43c`), referenced in `wrangler.jsonc`
 - Private R2 bucket `yondr-marketing-requests-files`
 
-Everything below is one-time.
+Everything below is one-time. Handing the Cloudflare part to an agent? Give it
+[cloudflare-setup-runbook.md](cloudflare-setup-runbook.md).
 
 ## 1. Connect deploys (Cloudflare Workers Builds)
 
