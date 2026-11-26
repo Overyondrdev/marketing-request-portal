@@ -1,6 +1,6 @@
-// Notifications: the in-app inbox (the bell) for everyone, plus email (Cloudflare Email Service) and optional Slack.
-//   - Email goes out when EMAIL_ENABLED is "on". Emails that ask someone to act (approve, answer, review) always
-//     send; plain updates respect each person's "Email me updates" setting.
+// Notifications: the in-app inbox (the bell) for everyone, plus email (Resend) and optional Slack.
+//   - Email goes out when EMAIL_ENABLED is "on" and the RESEND_API_KEY secret is set. Emails that ask someone to act
+//     (approve, answer, review) always send; plain updates respect each person's "Email me updates" setting.
 //   - Slack: set the SLACK_WEBHOOK_URL secret to post new and overdue work to the marketing channel.
 // Sending never blocks or fails the action that caused it: it runs in ctx.waitUntil and errors are logged.
 
@@ -26,6 +26,9 @@ export function requestUrl(env: Env, ref: string) {
   return ref ? `${env.APP_URL || ''}/requests/${ref}` : `${env.APP_URL || ''}/`;
 }
 
+export const RESEND_API = 'https://api.resend.com/emails/batch';
+export const emailEnabled = (env: Env) => env.EMAIL_ENABLED === 'on' && !!env.RESEND_API_KEY;
+
 export async function notify(env: Env, ctx: ExecutionContext | undefined, to: (string | null | undefined)[], n: Note) {
   const people = [...new Set(to.filter((e): e is string => !!e && e !== n.actor && e !== 'marketing'))];
   const ts = now();
@@ -41,7 +44,7 @@ export async function notify(env: Env, ctx: ExecutionContext | undefined, to: (s
     );
   }
   const work: Promise<unknown>[] = [];
-  if (people.length && env.EMAIL_ENABLED === 'on' && env.EMAIL) work.push(sendEmails(env, people, n));
+  if (people.length && emailEnabled(env)) work.push(sendEmails(env, people, n));
   if (n.slack && env.SLACK_WEBHOOK_URL) work.push(postSlack(env, n));
   if (!work.length) return;
   const all = Promise.allSettled(work).then((r) => r.forEach((x) => x.status === 'rejected' && console.error('notify', x.reason)));
@@ -68,19 +71,33 @@ async function sendEmails(env: Env, people: string[], n: Note) {
   const names = Object.fromEntries(named.map((r) => [r.email, r.name || nameFromEmail(r.email)]));
   const subject = n.subject || `${n.request.ref}: ${n.request.title || 'Marketing request'}`;
   const { html, text } = renderEmail(env, n);
-  // One message per person, so nobody sees who else was told and replies stay private.
-  await Promise.all(
-    recipients.map((email) =>
-      env.EMAIL.send({
-        from: { email: env.MAIL_FROM, name: env.MAIL_FROM_NAME || 'Yondr Marketing Requests' },
-        to: { email, name: names[email] || nameFromEmail(email) },
-        replyTo: n.actor && n.actor.includes('@') ? { email: n.actor, name: names[n.actor] || nameFromEmail(n.actor) } : undefined,
-        subject,
-        html,
-        text,
-      } as any).catch((e: unknown) => console.error('email', email, e)),
-    ),
-  );
+  if (!recipients.length) return;
+  const fromName = (env.MAIL_FROM_NAME || 'Yondr Marketing Requests').replace(/["<>]/g, '');
+  const address = (email: string) => `${(names[email] || nameFromEmail(email)).replace(/["<>]/g, '')} <${email}>`;
+  // One message per person, so nobody sees who else was told and replies stay private. Resend's batch endpoint
+  // sends up to 100 messages in one call.
+  for (let i = 0; i < recipients.length; i += 100) {
+    const batch = recipients.slice(i, i + 100).map((email) => ({
+      from: `${fromName} <${env.MAIL_FROM}>`,
+      to: [address(email)],
+      ...(n.actor && n.actor.includes('@') ? { reply_to: [address(n.actor)] } : {}),
+      subject,
+      html,
+      text,
+      tags: [{ name: 'kind', value: n.kind.replace(/[^\w-]/g, '_') }],
+    }));
+    const res = await fetch(RESEND_API, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'content-type': 'application/json',
+        // Resend ignores a repeat with the same key (e.g. a retried Worker), so nobody gets the email twice.
+        'idempotency-key': `${n.request.ref || 'none'}-${n.kind}-${Date.now()}-${i}`.slice(0, 256),
+      },
+      body: JSON.stringify(batch),
+    });
+    if (!res.ok) console.error('resend', res.status, (await res.text()).slice(0, 500));
+  }
 }
 
 export function renderEmail(env: Env, n: Note): { html: string; text: string } {

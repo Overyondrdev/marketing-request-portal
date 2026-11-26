@@ -3,5 +3,8 @@
 DEV_EMAIL="your.name@overyondr.com"
 # People who are always admins.
 OWNER_EMAILS="your.name@overyondr.com"
+# Optional: send real email locally through Resend (also set EMAIL_ENABLED="on"). Use a test key.
+# RESEND_API_KEY="re_..."
+# EMAIL_ENABLED="on"
 # Optional: post new and overdue work to a Slack channel.
 # SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."

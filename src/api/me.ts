@@ -5,6 +5,7 @@ import { TYPES } from '../../public/js/shared/catalog.js';
 import { atLeast } from '../../public/js/shared/workflow.js';
 import { allowedDomain } from '../lib/access';
 import { body, fail, isEmail, json, now, str } from '../lib/http';
+import { emailEnabled } from '../lib/notify';
 import { effective, typeSettings } from '../lib/requests';
 import { ensureUser, nameFromEmail, owners, type Me } from '../lib/users';
 
@@ -24,7 +25,7 @@ export async function whoami(env: Env, me: Me) {
       unread: counts?.unread || 0,
       unassigned: atLeast(me.role, 'marketing') ? counts?.unassigned || 0 : 0,
     },
-    email_enabled: env.EMAIL_ENABLED === 'on',
+    email_enabled: emailEnabled(env),
   });
 }
 

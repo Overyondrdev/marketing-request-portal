@@ -16,5 +16,5 @@ The portal holds internal Yondr briefs and files. Report anything that could exp
 - **Files:** private R2 bucket, served only through the Worker after a permission check; anything a browser could run
   is downloaded rather than shown, with a sandboxing CSP.
 - **Headers:** strict CSP (scripts from this origin only), `X-Frame-Options: DENY`, HSTS, `nosniff`, `noindex`.
-- **Secrets** (`OWNER_EMAILS`, `SLACK_WEBHOOK_URL`) are Worker secrets, never committed. `DEV_EMAIL` is for local
+- **Secrets** (`OWNER_EMAILS`, `RESEND_API_KEY`, `SLACK_WEBHOOK_URL`) are Worker secrets, never committed. `DEV_EMAIL` is for local
   `.dev.vars` only and must never be set in production.

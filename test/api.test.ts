@@ -1,6 +1,6 @@
 // The API end to end, inside the Workers runtime with a local D1 and R2.
 import { exports } from 'cloudflare:workers';
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it, beforeAll, vi } from 'vitest';
 
 const worker = (exports as unknown as { default: { fetch(r: Request): Promise<Response> } }).default;
 
@@ -27,6 +27,18 @@ async function call(who: string, method: string, path: string, body?: unknown, r
   return { status: res.status, ...data };
 }
 const due = (days: number) => new Date(Date.now() + days * 864e5).toISOString().slice(0, 10);
+
+// Every email goes to Resend's batch endpoint; capture the calls instead of sending.
+const sent: { url: string; headers: Headers; body: any[] }[] = [];
+const realFetch = globalThis.fetch;
+vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+  const url = String(input instanceof Request ? input.url : input);
+  if (url.startsWith('https://api.resend.com/')) {
+    sent.push({ url, headers: new Headers(init?.headers), body: JSON.parse(String(init?.body)) });
+    return Response.json({ data: [{ id: 'test' }] });
+  }
+  return realFetch(input as any, init);
+});
 
 beforeAll(async () => {
   for (const e of [SAM, MGR, DANA, OWNER]) await call(e, 'GET', '/api/me');
@@ -127,6 +139,22 @@ describe('request lifecycle', () => {
     const report = await call(OWNER, 'GET', '/api/reports');
     expect(report.kpis.completed).toBeGreaterThanOrEqual(1);
     expect((await call(SAM, 'GET', '/api/reports')).status).toBe(403);
+  });
+
+  it('emails the approver through Resend, one private message each, replying to the requester', async () => {
+    sent.length = 0;
+    const ref = await submittedDeck();
+    await new Promise((r) => setTimeout(r, 50)); // email is sent in waitUntil
+    const call = sent.find((c) => c.body.some((m: any) => m.to[0].includes(MGR)));
+    expect(call?.url).toBe('https://api.resend.com/emails/batch');
+    expect(call?.headers.get('authorization')).toBe('Bearer re_test_key');
+    expect(call?.headers.get('idempotency-key')).toBeTruthy();
+    const msg = call!.body[0];
+    expect(msg.to).toHaveLength(1);
+    expect(msg.subject).toContain(ref);
+    expect(msg.reply_to[0]).toContain(SAM);
+    expect(msg.html).toContain(`/requests/${ref}`);
+    expect(msg.text).toContain('Review and approve');
   });
 
   it('hides internal notes from requesters', async () => {

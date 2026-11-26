@@ -47,7 +47,7 @@ A single Cloudflare Worker (`yondr-marketing-requests`), no frameworks, no runti
 | `src/api/files.ts`                      | Uploads to and downloads from R2, with permission checks                                                                 |
 | `src/api/reports.ts`                    | Report figures and CSV export                                                                                            |
 | `src/api/admin.ts`, `src/api/me.ts`     | People, roles, routing per type; profile, directory                                                                      |
-| `src/lib/notify.ts`                     | In-app notifications, email (Cloudflare Email Service) and Slack                                                         |
+| `src/lib/notify.ts`                     | In-app notifications, email (Resend) and Slack                                                                           |
 | `src/cron.ts`                           | Reminders (weekdays, twice a day)                                                                                        |
 | `public/js/shared/catalog.js`           | **The request catalog**: categories, types, questions, turnaround, validation, brief score. Shared by browser and Worker |
 | `public/js/shared/workflow.js`          | Statuses, stages, actions and who may take them. Shared by browser and Worker                                            |

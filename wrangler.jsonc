@@ -4,6 +4,7 @@
 //
 // Secrets (set with `npx wrangler secret put <NAME>`, never committed):
 //   OWNER_EMAILS       comma-separated emails that are always admins (required for the first admin)
+//   RESEND_API_KEY     Resend API key (sending access) for notification email
 //   SLACK_WEBHOOK_URL  optional incoming-webhook URL for a marketing channel
 {
   "$schema": "node_modules/wrangler/config-schema.json",
@@ -32,10 +33,10 @@
     "ACCESS_TEAM_DOMAIN": "overyondr.cloudflareaccess.com",
     // Only these email domains may use the portal, even if Access lets someone else through.
     "ALLOWED_EMAIL_DOMAINS": "overyondr.com",
-    // Sender for notification emails. The domain must be onboarded in Cloudflare Email Service (docs/setup.md).
-    "MAIL_FROM": "requests@overyondrdev.com",
+    // Sender for notification emails (Resend). The domain must be verified in Resend (docs/setup.md).
+    "MAIL_FROM": "requests@mail.overyondr.com",
     "MAIL_FROM_NAME": "Yondr Marketing Requests",
-    // "on" sends email; "off" keeps notifications in-app (and Slack, if set up) only.
+    // "on" sends email (needs the RESEND_API_KEY secret); "off" keeps notifications in-app (and Slack) only.
     "EMAIL_ENABLED": "off",
   },
 
@@ -50,9 +51,6 @@
 
   // Briefs' reference files and deliverables. Private: files are only served through the Worker, after a permission check.
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "yondr-marketing-requests-files" }],
-
-  // Notification email (Cloudflare Email Service). Works once MAIL_FROM's domain is onboarded and EMAIL_ENABLED is "on".
-  "send_email": [{ "name": "EMAIL" }],
 
   // Reminders: approvals waiting, proofs waiting for review, due soon and overdue work. Weekdays 14:05 and 19:05 UTC
   // (9:05 and 14:05 US Eastern in winter).

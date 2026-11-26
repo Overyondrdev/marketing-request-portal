@@ -12,6 +12,9 @@ export default defineConfig({
           TEST_MIGRATIONS: await readD1Migrations(path.join(__dirname, 'migrations')),
           DEV_EMAIL: 'sam.requester@overyondr.com',
           OWNER_EMAILS: 'alex.owner@overyondr.com',
+          // Email on, with a fake key: test/api.test.ts intercepts the calls to Resend.
+          EMAIL_ENABLED: 'on',
+          RESEND_API_KEY: 're_test_key',
         },
       },
     })),

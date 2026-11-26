@@ -1,7 +1,7 @@
 # Marketing request portal — instructions for Claude
 
 The Yondr marketing request portal: a Cloudflare Worker (`yondr-marketing-requests`) with D1, R2, static assets and
-Email Service, live at https://requests.overyondrdev.com behind Cloudflare Access. Read README.md for the map.
+Resend email, live at https://requests.overyondrdev.com behind Cloudflare Access. Read README.md for the map.
 
 ## Ship a change
 
@@ -23,7 +23,7 @@ Email Service, live at https://requests.overyondrdev.com behind Cloudflare Acces
   running requests.
 - **Security:** every route goes through the Access check in `src/index.ts`. Keep `workers_dev`/`preview_urls` false,
   `run_worker_first` true and the CSRF header on mutating calls. `DEV_EMAIL` is local-only. Secrets
-  (`OWNER_EMAILS`, `SLACK_WEBHOOK_URL`) go in `wrangler secret put`, never in `wrangler.jsonc`. Don't put personal
+  (`OWNER_EMAILS`, `RESEND_API_KEY`, `SLACK_WEBHOOK_URL`) go in `wrangler secret put`, never in `wrangler.jsonc`. Don't put personal
   emails in committed files; tests and seed data use fictional `@overyondr.com` identities.
 - **Front end:** plain ES modules, no framework or build step. Render with the `html` tag from `public/js/lib/ui.js`
   (it escapes); never concatenate user data into markup. Use the tokens and components in `public/css/base.css`;
