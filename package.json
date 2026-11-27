@@ -18,7 +18,8 @@
     "format:check": "prettier --check .",
     "test": "node scripts/build-static.mjs && vitest run",
     "test:watch": "vitest",
-    "check": "npm run typecheck && npm run lint:js && npm run format:check && npm test && wrangler deploy --dry-run --outdir dist",
+    "check:secrets": "node scripts/secret-scan.mjs",
+    "check": "npm run typecheck && npm run lint:js && npm run check:secrets && npm run format:check && npm test && wrangler deploy --dry-run --outdir dist",
     "cf-typegen": "wrangler types --env-interface Env --strict-vars=false src/worker-configuration.d.ts"
   },
   "engines": {
