@@ -1,7 +1,7 @@
 // Settings: your profile (name, title, department, manager = default approver) and email notifications.
 
 import { api } from '../lib/api.js';
-import { store, loadPeople } from '../lib/store.js';
+import { store } from '../lib/store.js';
 import { html, icon, setTitle, toast } from '../lib/ui.js';
 import { DEPARTMENTS } from '../shared/catalog.js';
 import { ROLE_LABELS } from '../shared/workflow.js';
@@ -9,11 +9,6 @@ import { ROLE_LABELS } from '../shared/workflow.js';
 export default async function settings(main) {
   setTitle('Settings');
   const me = store.me;
-  const people = (await loadPeople()).filter((p) => p.email !== me.email);
-  const approvers = people.filter((p) => p.is_approver);
-  const others = people.filter((p) => !p.is_approver);
-  const opt = (p) =>
-    html`<option value="${p.email}" ${p.email === me.manager_email ? 'selected' : ''}>${p.name}${p.title ? ` · ${p.title}` : ''}</option>`;
 
   main.innerHTML = String(
     html`<div class="page narrow">
@@ -48,12 +43,19 @@ export default async function settings(main) {
             </div>
             <div class="field">
               <label class="label" for="s-mgr">Your manager</label>
-              <select class="select" id="s-mgr" name="manager_email" aria-describedby="s-mgr-h">
-                <option value="">Choose…</option>
-                ${approvers.length ? html`<optgroup label="Approvers">${approvers.map(opt)}</optgroup>` : ''}
-                ${others.length ? html`<optgroup label="Everyone else">${others.map(opt)}</optgroup>` : ''}
-              </select>
-              <span class="hint" id="s-mgr-h">They approve your requests by default. You can choose someone else on any request.</span>
+              <input
+                class="input"
+                id="s-mgr"
+                name="manager_email"
+                type="email"
+                data-people
+                value="${me.manager_email || ''}"
+                placeholder="Type their name"
+                aria-describedby="s-mgr-h"
+              />
+              <span class="hint" id="s-mgr-h"
+                >Type their name and pick them. They approve your requests by default. You can choose someone else on any request.</span
+              >
             </div>
           </div>
         </section>

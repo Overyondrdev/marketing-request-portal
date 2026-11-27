@@ -32,6 +32,9 @@ overyondr-website-v1) before changing sign-in, deploys or Cloudflare settings.
   (it escapes); never concatenate user data into markup. Use the tokens and components in `public/css/base.css`;
   Yondr Brand Guidelines v1.0 (Fraunces + Inter Tight, forest/lichen palette). Accessible: labels, focus states,
   keyboard operation, `prefers-reduced-motion`, no horizontal scroll at 375px.
+- **Person fields use the shared directory picker** (overyondr-website-v1 docs/PLATFORM.md §8): `data-people` on the
+  input, `https://auth.overyondrdev.com/people-picker.js` in `public/index.html`, the auth host in the CSP's
+  `script-src`/`connect-src`. No `<datalist>`s or staff dropdowns. Assignee selects stay limited to the marketing team.
 - **Notifications** go through `notify()` in `src/lib/notify.ts`. Mark ones that need the recipient to act
   `actionNeeded` (always emailed); plain updates respect the person's email setting.
 - Ask before adding a runtime dependency. Dev dependencies need a reason in the PR.

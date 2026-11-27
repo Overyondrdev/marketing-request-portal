@@ -4,7 +4,7 @@
 
 import { api } from './lib/api.js';
 import { store, loadMe, isMarketing, isLead } from './lib/store.js';
-import { html, icon, avatar, ago, toast, esc, setTitle, empty } from './lib/ui.js';
+import { html, icon, avatar, ago, toast, esc, setTitle, empty, hostPeoplePicker } from './lib/ui.js';
 import { ROLE_LABELS } from './shared/workflow.js';
 
 const ROUTES = [
@@ -311,6 +311,7 @@ window.addEventListener('popstate', render);
 
 // ------------------------------------------------------------------ boot
 async function boot() {
+  hostPeoplePicker();
   try {
     await loadMe();
   } catch (e) {

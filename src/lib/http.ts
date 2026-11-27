@@ -62,8 +62,8 @@ export function secure(res: Response, html = false): Response {
   if (html) {
     h.set(
       'content-security-policy',
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; " +
-        "font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'",
+      "default-src 'self'; script-src 'self' https://auth.overyondrdev.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; " +
+        "font-src 'self'; connect-src 'self' https://auth.overyondrdev.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'",
     );
   }
   return r;

@@ -8,7 +8,7 @@ import { STATUSES } from '../shared/workflow.js';
 const FAQ = [
   [
     'Who approves my request?',
-    'Your manager, by default (set them in Settings). You can choose another approver on any request. Some quick requests, like brand files and internal communications, don’t need approval.',
+    'Your manager, by default (set them in Settings). You can choose another approver on any request: type their name and pick them from the Yondr directory. Some quick requests, like brand files and internal communications, don’t need approval.',
   ],
   [
     'How do I know when my request will be ready?',
@@ -30,7 +30,10 @@ const FAQ = [
     'Can I change my request after submitting it?',
     'Yes, until marketing starts work: edit the brief from the request page. After that, add a comment so the person working on it sees the change.',
   ],
-  ['Can other people follow a request?', 'Yes. Add them under “People following” on the request. They see it and get updates.'],
+  [
+    'Can other people follow a request?',
+    'Yes. Under “Following” on the request, type their name and pick them from the Yondr directory. They see it and get updates.',
+  ],
   ['Who can see my request?', 'You, your approver, anyone following it, and the marketing team. Nobody else at Yondr sees it.'],
   ['How do I cancel?', 'Open the request and choose Cancel request, with a short reason. You can duplicate it later if it comes back.'],
 ];

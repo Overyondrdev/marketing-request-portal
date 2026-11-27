@@ -20,6 +20,10 @@ and follow it to delivery: copy, decks, one-pagers, ads, web pages, video, trade
 - **Work queue and reports for marketing.** Board, list and calendar views; workload per person; reports on volume,
   approval time, first response, turnaround, on-time delivery, estimates hit or slipped, first-time-right, ratings, by type, department and
   person; CSV export.
+- **People from the Yondr directory.** Every field where you enter a Yondr person (approver, followers, your manager,
+  people in _People & routing_) uses the shared people picker from `auth.overyondrdev.com`: type a letter or two and
+  pick from up to 6 matching people (name and title). The Worker still checks every address server-side. See
+  [platform guide §8](https://github.com/Overyondrdev/overyondr-website-v1/blob/main/docs/PLATFORM.md).
 - **Yondr only.** The Yondr Google sign-in (`auth.overyondrdev.com`, `@overyondr.com` Google accounts only), checked by
   the Worker on every request. See the [overyondrdev.com platform guide](https://github.com/Overyondrdev/overyondr-website-v1/blob/main/docs/PLATFORM.md).
 

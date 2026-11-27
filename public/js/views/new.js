@@ -294,7 +294,6 @@ async function wizard(main, ctx, ref) {
     priority: r.priority || 'normal',
     department: r.department || me.department || '',
     approver: r.approver_email || (me.manager_email !== me.email ? me.manager_email : '') || '',
-    approverOther: false,
     files: payload.files.filter((f) => f.kind === 'reference'),
     watchers: payload.watchers || [],
     errors: {},
@@ -305,7 +304,6 @@ async function wizard(main, ctx, ref) {
     saveError: '',
     dirty: false,
   };
-  if (s.approver && !people.some((p) => p.email === s.approver)) s.approverOther = true;
 
   const baseStepFields = BASE_FIELDS.filter((f) => f.id !== 'reference_links').map((f) => f.id);
   const refLinkField = BASE_FIELDS.find((f) => f.id === 'reference_links');
@@ -861,18 +859,14 @@ ${v ?? ''}</textarea>
   }
 
   // ----------------------------------------------------------------- timing step
-  function approverOptions() {
-    const others = people.filter((p) => p.email !== me.email);
-    const approvers = others.filter((p) => p.is_approver);
-    const rest = others.filter((p) => !p.is_approver);
-    const opt = (p) =>
-      html`<option value="${p.email}" ${s.approver === p.email ? 'selected' : ''}>
-        ${p.name}${p.title ? ` · ${p.title}` : ''}${p.email === me.manager_email ? ' (your manager)' : ''}
-      </option>`;
-    return html`<option value="">Choose an approver…</option>
-      ${approvers.length ? html`<optgroup label="Approvers">${approvers.map(opt)}</optgroup>` : ''}
-      ${rest.length ? html`<optgroup label="Everyone else">${rest.map(opt)}</optgroup>` : ''}
-      <option value="__other" ${s.approverOther ? 'selected' : ''}>Someone else (enter their email)…</option>`;
+  function approverChip() {
+    return s.approver && EMAIL_RE.test(s.approver)
+      ? html`<div class="approver-chip">
+          ${avatar(s.approver, nameOf(s.approver, names), 'sm')}<span
+            ><strong>${nameOf(s.approver, names)}</strong> will be asked to approve.</span
+          >
+        </div>`
+      : '';
   }
   function timingHtml() {
     return html`<div class="fields">
@@ -925,26 +919,22 @@ ${v ?? ''}</textarea>
         >
         ${
           needsApproval
-            ? html`<p class="hint" id="h-appr">Usually your manager. They get an email with your brief and approve it in one click.</p>
-                <select
-                  class="select"
+            ? html`<p class="hint" id="h-appr">
+                  Usually your manager. Type their name and pick them from the Yondr directory. They get an email with your brief and
+                  approve it in one click.
+                </p>
+                <input
+                  class="input"
                   id="f-approver_email"
-                  data-top="approver_select"
+                  type="email"
+                  data-people
+                  data-top="approver"
+                  value="${s.approver}"
+                  placeholder="Type their name"
                   aria-describedby="h-appr e-approver_email"
                   aria-invalid="${s.errors.approver_email ? 'true' : 'false'}"
-                >
-                  ${approverOptions()}
-                </select>
-                ${s.approverOther ? html`<input class="input mt" id="f-approver_other" type="email" data-top="approver_other" value="${s.approver}" placeholder="name@overyondr.com" aria-label="Approver’s email" aria-describedby="e-approver_email" />` : ''}
-                ${
-                  s.approver && EMAIL_RE.test(s.approver)
-                    ? html`<div class="approver-chip">
-                        ${avatar(s.approver, nameOf(s.approver, names), 'sm')}<span
-                          ><strong>${nameOf(s.approver, names)}</strong> will be asked to approve.</span
-                        >
-                      </div>`
-                    : ''
-                }
+                />
+                <div data-approver-chip>${approverChip()}</div>
                 ${!me.manager_email ? html`<p class="hint">Tip: set your manager in <a href="/settings" data-link>Settings</a> and we’ll fill this in next time.</p>` : ''}`
             : html`<div class="turnaround ok">
                 ${icon('zap', 18)}
@@ -970,16 +960,13 @@ ${v ?? ''}</textarea>
             class="input"
             id="f-watch"
             type="email"
-            list="people-list"
-            placeholder="Name or email"
+            data-people
+            placeholder="Type a name"
             aria-describedby="h-watch"
             autocomplete="off"
           />
           <button type="button" class="btn" data-watch-add>${icon('plus', 16)}Add</button>
         </div>
-        <datalist id="people-list">
-          ${people.filter((p) => p.email !== me.email).map((p) => html`<option value="${p.email}">${p.name}</option>`)}
-        </datalist>
         <ul class="watchers" data-watchers>
           ${watchersHtml()}
         </ul>
@@ -1154,7 +1141,9 @@ ${v ?? ''}</textarea>
   const strengthWord = (n) => (n >= 80 ? 'great' : n >= 55 ? 'good' : n >= 30 ? 'getting there' : 'just started');
   function nextSteps() {
     const steps = [
-      needsApproval ? `${s.approver ? nameOf(s.approver, names) : 'Your approver'} approves it` : 'Goes straight to marketing',
+      needsApproval
+        ? `${s.approver && EMAIL_RE.test(s.approver) ? nameOf(s.approver, names) : 'Your approver'} approves it`
+        : 'Goes straight to marketing',
       'Marketing assigns a creator',
       'They create it and ask questions here',
       'You review and accept',
@@ -1305,27 +1294,25 @@ ${v ?? ''}</textarea>
       }
     } else if (top === 'priority') s.priority = t.value;
     else if (top === 'department') s.department = t.value;
-    else if (top === 'approver_select') {
-      if (t.value === '__other') {
-        s.approverOther = true;
-        s.approver = '';
-      } else {
-        s.approverOther = false;
-        s.approver = t.value;
-      }
-      delete s.errors.approver_email;
-      if (e.type === 'change') {
-        rerenderKeepFocus();
-        if (s.approverOther) form.querySelector('#f-approver_other')?.focus();
-      }
-    } else if (top === 'approver_other') {
+    else if (top === 'approver') {
       s.approver = t.value.trim().toLowerCase();
+      delete s.errors.approver_email;
+      form.querySelector('[data-approver-chip]').innerHTML = String(approverChip());
     }
     scheduleSave();
     renderSide();
   }
   form.addEventListener('input', onInput);
   form.addEventListener('change', onInput);
+  // Picked from the Yondr directory (people-picker.js): learn the name; a picked follower is added straight away.
+  form.addEventListener('people:select', (e) => {
+    const { email, name } = e.detail || {};
+    if (email && name && !names[email]) names[email] = name;
+    if (e.target.id === 'f-approver_email') {
+      form.querySelector('[data-approver-chip]').innerHTML = String(approverChip());
+      renderSide();
+    } else if (e.target.id === 'f-watch') addWatcher();
+  });
 
   // Validate on blur.
   form.addEventListener('focusout', (e) => {
@@ -1336,8 +1323,8 @@ ${v ?? ''}</textarea>
       const f = allFields.find((x) => x.id === t.dataset.f);
       if (f && f.type !== 'cards' && f.type !== 'multi') setFieldError(f.id, fieldError(f, s.brief[f.id]));
     } else if (t.dataset.top === 'title' && s.title && s.title.trim().length < 3) setFieldError('title', 'Give the request a short name.');
-    else if (t.dataset.top === 'approver_other' && s.approver && !EMAIL_RE.test(s.approver))
-      setFieldError('approver_email', 'Enter a full email address.');
+    else if (t.dataset.top === 'approver' && s.approver && !EMAIL_RE.test(s.approver))
+      setFieldError('approver_email', 'Type their name and pick them from the list, or enter their full email address.');
   });
 
   form.addEventListener('click', async (e) => {
