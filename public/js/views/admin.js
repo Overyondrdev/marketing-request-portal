@@ -244,7 +244,6 @@ async function peopleTab(out, auditOnly) {
 }
 
 function personDialog(p, d) {
-  const managers = d.people.filter((x) => x.is_approver && x.email !== p?.email);
   return dialog({
     title: p ? `Edit ${p.name}` : 'Add a person',
     text: p
@@ -262,11 +261,12 @@ function personDialog(p, d) {
                 id="pd-email"
                 name="email"
                 type="email"
+                data-people
                 required
                 pattern="[^@\\s]+@overyondr\\.com"
-                placeholder="name@overyondr.com"
+                placeholder="Type their name"
                 autofocus
-              /><span class="hint">An @overyondr.com address.</span>
+              /><span class="hint">Pick them from the Yondr directory, or type an @overyondr.com address.</span>
             </div>`
       }
       <div class="field">
@@ -286,10 +286,15 @@ function personDialog(p, d) {
       </div>
       <div class="field">
         <label class="label" for="pd-mgr">Manager (default approver)</label
-        ><select class="select" id="pd-mgr" name="manager_email">
-          <option value="">—</option>
-          ${managers.map((m) => html`<option value="${m.email}" ${p?.manager_email === m.email ? 'selected' : ''}>${m.name}</option>`)}
-        </select>
+        ><input
+          class="input"
+          id="pd-mgr"
+          name="manager_email"
+          type="email"
+          data-people
+          value="${p?.manager_email || ''}"
+          placeholder="Type their name"
+        />
       </div>
       ${
         d.can_edit_roles && !p?.owner && p?.email !== store.me.email
@@ -313,6 +318,13 @@ function personDialog(p, d) {
         >
       </div>
     </div>`,
+    // Picking a new person from the Yondr directory fills in their name and job title too.
+    onOpen: (dlg) =>
+      dlg.querySelector('#pd-email')?.addEventListener('people:select', (e) => {
+        const { name, title } = e.detail || {};
+        if (name) dlg.querySelector('#pd-name').value = name;
+        if (title && !dlg.querySelector('#pd-title').value) dlg.querySelector('#pd-title').value = title;
+      }),
   }).then((v) => {
     if (!v) return null;
     if (p?.owner) delete v.is_approver;

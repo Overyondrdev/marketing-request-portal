@@ -304,6 +304,8 @@ export function dialog({ title, text = '', body = '', confirm = 'OK', cancel = '
     const finish = (v) => {
       if (done) return;
       done = true;
+      const picker = d.querySelector('#ypp-list');
+      if (picker) document.body.append(picker); // hand the people picker's list back before the dialog goes
       d.close();
       d.remove();
       resolve(v);
@@ -334,6 +336,23 @@ export function dialog({ title, text = '', body = '', confirm = 'OK', cancel = '
       d.querySelector('[type=submit]')
     )?.focus();
   });
+}
+/**
+ * The shared people picker (auth.overyondrdev.com/people-picker.js) puts its suggestion list on <body>, but a modal
+ * <dialog> sits in the top layer above everything there. While a person field inside an open dialog is in use, host
+ * the list inside that dialog so it shows (and can be clicked); otherwise keep it on <body>.
+ */
+export function hostPeoplePicker() {
+  const place = () => {
+    const list = document.getElementById('ypp-list');
+    if (!list) return;
+    const a = document.activeElement;
+    const host = (a?.matches?.('input[data-people]') && a.closest('dialog[open]')) || document.body;
+    if (list.parentNode !== host) host.append(list);
+  };
+  document.addEventListener('focusin', place);
+  document.addEventListener('input', place, true);
+  new MutationObserver(place).observe(document.body, { childList: true });
 }
 export const confirmDialog = (title, text, confirm = 'Yes', tone = 'primary') =>
   dialog({ title, text, confirm, tone }).then((v) => v !== null);

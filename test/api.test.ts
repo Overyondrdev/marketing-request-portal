@@ -96,6 +96,9 @@ describe('app files', () => {
       expect(r.status).toBe(200);
       expect(r.headers.get('content-type')).toContain('text/html');
       expect(r.headers.get('content-security-policy')).toContain("script-src 'self'");
+      // The shared Yondr people picker loads from, and asks, the sign-in host.
+      expect(r.headers.get('content-security-policy')).toContain("script-src 'self' https://auth.overyondrdev.com");
+      expect(r.headers.get('content-security-policy')).toContain("connect-src 'self' https://auth.overyondrdev.com");
     }
     expect((await get('/css/base.css')).headers.get('content-type')).toContain('text/css');
     expect((await get('/js/app.js')).headers.get('content-type')).toContain('javascript');

@@ -1282,10 +1282,7 @@ ${composer.text}</textarea>
           manage
             ? html`<form class="rq-add-watcher" data-add-watcher>
                 <label class="visually-hidden" for="add-watcher">Add a person by name or email</label>
-                <input class="input sm" id="add-watcher" list="people-list" placeholder="Add someone (name or email)" autocomplete="off" />
-                <datalist id="people-list">
-                  ${(store.people || []).filter((p) => !w.some((x) => x.email === p.email)).map((p) => html`<option value="${p.email}">${p.name}</option>`)}
-                </datalist>
+                <input class="input sm" id="add-watcher" data-people placeholder="Add someone (type a name)" autocomplete="off" />
                 <button type="submit" class="btn sm">Add</button>
               </form>`
             : ''
@@ -1528,6 +1525,11 @@ ${composer.text}</textarea>
     }
   }
 
+  // Picked from the Yondr directory (people-picker.js): add the follower straight away.
+  function onPeopleSelect(e) {
+    if (e.target.id === 'add-watcher') e.target.form?.requestSubmit();
+  }
+
   function onKeydown(e) {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.target.matches('textarea[data-composer-text], textarea[data-reply-text]')) {
       e.preventDefault();
@@ -1566,6 +1568,7 @@ ${composer.text}</textarea>
   main.addEventListener('change', onChange);
   main.addEventListener('submit', onSubmit);
   main.addEventListener('keydown', onKeydown);
+  main.addEventListener('people:select', onPeopleSelect);
   for (const t of ['dragenter', 'dragover', 'dragleave', 'drop']) main.addEventListener(t, onDrag);
   document.addEventListener('visibilitychange', onVisible);
   if (location.hash) document.querySelector(location.hash)?.scrollIntoView({ block: 'start' });
@@ -1576,6 +1579,7 @@ ${composer.text}</textarea>
     main.removeEventListener('change', onChange);
     main.removeEventListener('submit', onSubmit);
     main.removeEventListener('keydown', onKeydown);
+    main.removeEventListener('people:select', onPeopleSelect);
     for (const t of ['dragenter', 'dragover', 'dragleave', 'drop']) main.removeEventListener(t, onDrag);
     document.removeEventListener('visibilitychange', onVisible);
   };
