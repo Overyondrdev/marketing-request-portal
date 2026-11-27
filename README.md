@@ -20,7 +20,8 @@ and follow it to delivery: copy, decks, one-pagers, ads, web pages, video, trade
 - **Work queue and reports for marketing.** Board, list and calendar views; workload per person; reports on volume,
   approval time, first response, turnaround, on-time delivery, first-time-right, ratings, by type, department and
   person; CSV export.
-- **Yondr only.** Cloudflare Access sign-in with an `@overyondr.com` email, re-verified by the Worker on every request.
+- **Yondr only.** The Yondr Google sign-in (`auth.overyondrdev.com`, `@overyondr.com` Google accounts only), checked by
+  the Worker on every request. See the [overyondrdev.com platform guide](https://github.com/Overyondrdev/overyondr-website-v1/blob/main/docs/PLATFORM.md).
 
 ## Roles
 
@@ -42,7 +43,7 @@ A single Cloudflare Worker (`yondr-marketing-requests`), no frameworks, no runti
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `scripts/build-static.mjs`, `src/lib/static.ts` | Bundles `public/` into the Worker and serves it after the sign-in check (no separate asset upload)                       |
 | `src/index.ts`                                  | Router, sign-in check on every request, CSRF guard, security headers, scheduled reminders                                |
-| `src/lib/access.ts`                             | Cloudflare Access token verification and the Yondr-only email check                                                      |
+| `src/lib/access.ts`, `src/lib/yondr-session.js` | Who is signed in: the Yondr Google session (and a legacy Access token), Yondr emails only                                |
 | `src/api/requests.ts`                           | Lists, home, drafts, the workflow actions (submit, approve, assign, deliver, accept…) and routing                        |
 | `src/api/conversation.ts`                       | Comments, questions (blocking or not), answers, internal notes                                                           |
 | `src/api/files.ts`                              | Uploads to and downloads from R2, with permission checks                                                                 |
@@ -55,7 +56,7 @@ A single Cloudflare Worker (`yondr-marketing-requests`), no frameworks, no runti
 | `public/js/app.js`, `public/js/views/*`         | The app shell and screens (home, new request, request page, lists, queue, reports, admin, settings, help)                |
 | `public/css/*`                                  | Design system (`base.css`) and screen styles; Yondr Brand Guidelines v1.0                                                |
 | `migrations/`                                   | D1 schema (`yondr-marketing-requests-db`)                                                                                |
-| `test/`                                         | Vitest in the Workers runtime: catalog and workflow rules, the API end to end, the Access check                          |
+| `test/`                                         | Vitest in the Workers runtime: catalog and workflow rules, the API end to end, the sign-in check                         |
 
 Data: D1 `yondr-marketing-requests-db` (requests, comments, files, events, notifications, users, type settings);
 files in the private R2 bucket `yondr-marketing-requests-files`.

@@ -1,6 +1,6 @@
 // yondr-marketing-requests: the Yondr marketing request portal at https://requests.overyondrdev.com.
-// Cloudflare Access ("overyondrdev.com (Yondr website dev)") covers *.overyondrdev.com, so only people who sign in
-// with an @overyondr.com email reach the Worker; the Worker re-checks Access's signed token on every request.
+// Sign-in: the Yondr Google sign-in (auth.overyondrdev.com); the Worker checks the session on every request
+// (src/lib/access.ts). Cloudflare Access is on Bypass for this host. See overyondr-website-v1 docs/PLATFORM.md.
 //
 // Secrets (set with `npx wrangler secret put <NAME>`, never committed):
 //   OWNER_EMAILS       comma-separated emails that are always admins (required for the first admin)
@@ -24,7 +24,7 @@
 
   "vars": {
     "APP_URL": "https://requests.overyondrdev.com",
-    // Cloudflare Access team whose signed tokens the Worker checks (src/lib/access.ts).
+    // Legacy Cloudflare Access tokens are still accepted (src/lib/access.ts).
     "ACCESS_TEAM_DOMAIN": "overyondr.cloudflareaccess.com",
     // Public key of the Yondr sign-in (auth.overyondrdev.com) that signs session cookies. Public: safe to commit.
     "YONDR_AUTH_PUBLIC_JWK": "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"BpCjLJMykOsJbtPTm63rdbw2BzRUTNTz3jj9LWqK6AM\",\"y\":\"RyW0y7Dki1BQ6GnYdD-4FPovGYfoaMmDgr21lNU7xXQ\",\"kid\":\"yondr-2026-11-26-a3a7e6\"}",

@@ -1,3 +1,6 @@
+> **Retired.** This was the first-time setup when the portal sat behind Cloudflare Access. The portal is live and now
+> uses the Yondr Google sign-in; see `docs/setup.md` and the overyondrdev.com platform guide. Kept for reference.
+
 # Set up the marketing request portal in Chrome (instructions for a browser agent)
 
 You are a browser agent working in Chrome, signed in as a Yondr web admin. You will put the Yondr marketing request

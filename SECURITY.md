@@ -5,9 +5,10 @@ The portal holds internal Yondr briefs and files. Report anything that could exp
 
 ## How the portal is protected
 
-- **Sign-in:** Cloudflare Access (one-time code to an `@overyondr.com` address) in front of `requests.overyondrdev.com`.
-- **Defence in depth:** the Worker verifies Access's signed token on every request (signature, issuer, expiry) and
-  rejects any email outside `ALLOWED_EMAIL_DOMAINS` — including the app's own static files (`run_worker_first`).
+- **Sign-in:** the Yondr Google sign-in (`auth.overyondrdev.com`): only verified `@overyondr.com` Google Workspace
+  accounts. It sets a signed 12-hour session cookie; the Worker verifies it on **every** request, including the app's
+  own files, and rejects any email outside `ALLOWED_EMAIL_DOMAINS`. Cloudflare Access is on Bypass for this host
+  (it charges a seat per person). Details: the overyondrdev.com platform guide (overyondr-website-v1 `docs/PLATFORM.md`).
 - **No bypasses:** `workers_dev` and `preview_urls` are off.
 - **Permissions in the API:** every rule lives in `public/js/shared/workflow.js` and is enforced by the Worker; the UI
   only hides what you can't do. Requests are visible only to the requester, approver, followers and marketing.

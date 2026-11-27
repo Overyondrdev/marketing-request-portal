@@ -8,7 +8,13 @@ What already exists (Yondr Cloudflare account `3fac6c19097c5692e17198cffa818085`
 Everything below is one-time. Handing the Cloudflare part to an agent? Give it
 [cloudflare-setup-chrome.md](cloudflare-setup-chrome.md) (step-by-step for a browser agent in Chrome).
 
-## 1. Connect deploys (Cloudflare Workers Builds)
+## 1. Deploys
+
+Today the portal is deployed with `npm run deploy` (migrations, then the Worker) by someone with Cloudflare access,
+including Claude cloud sessions. Automatic deploys on merge (below) need the Cloudflare GitHub app to have access to
+this repository.
+
+### Optional: Cloudflare Workers Builds
 
 Like the website and ad library, merges to `main` deploy themselves and no Cloudflare credentials are stored in GitHub.
 Do this **after the first pull request is merged**: connecting starts a build of `main` straight away, and it needs the
@@ -51,15 +57,12 @@ npx wrangler secret put SLACK_WEBHOOK_URL   # optional: Slack incoming webhook f
 Or in the dashboard: Workers & Pages → `yondr-marketing-requests` → Settings → Variables and Secrets → Add → type
 **Secret**. Secrets survive deploys. Owners then make the rest of the team marketing / leads, and mark approvers, under **People & routing**.
 
-## 3. Sign-in (Cloudflare Access)
+## 3. Sign-in (Yondr Google sign-in)
 
-The Access app "overyondrdev.com (Yondr website dev)" in team `overyondr.cloudflareaccess.com` covers
-`*.overyondrdev.com`, so `requests.overyondrdev.com` is protected as soon as it exists: one-time code to any
-`@overyondr.com` address. Check after the first deploy by opening the URL in a private window — you should see the
-Access login, not the app. The Worker also verifies the Access token and only accepts `ALLOWED_EMAIL_DOMAINS`.
-
-If the portal should get its own login page or session length, add a dedicated Access application for
-`requests.overyondrdev.com` with an _Emails ending in_ `@overyondr.com` policy.
+People sign in with their `@overyondr.com` Google account through `auth.overyondrdev.com`, shared by every
+overyondrdev.com site; the Worker checks the session on every request. Cloudflare Access is on **Bypass** for this
+host (Access application "Yondr sites (Google sign-in)"), because Access charges a seat per person. Nothing to set up
+here; how it works and how to add a site: the [overyondrdev.com platform guide](https://github.com/Overyondrdev/overyondr-website-v1/blob/main/docs/PLATFORM.md).
 
 ## 4. Email (Resend)
 
