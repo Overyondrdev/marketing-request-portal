@@ -5,8 +5,7 @@ What already exists (Yondr Cloudflare account `3fac6c19097c5692e17198cffa818085`
 - D1 database `yondr-marketing-requests-db` (`78cc06d7-c778-47eb-b630-6b9b0da5c43c`), referenced in `wrangler.jsonc`
 - Private R2 bucket `yondr-marketing-requests-files`
 
-Everything below is one-time. Handing the Cloudflare part to an agent? Give it
-[cloudflare-setup-chrome.md](cloudflare-setup-chrome.md) (step-by-step for a browser agent in Chrome).
+Everything below is one-time and already done; it's kept so the portal can be rebuilt.
 
 ## 1. Deploys
 
@@ -35,7 +34,7 @@ app to be there.
 | Build command                | `npm ci && npm run typecheck && npm test`                                                      |
 | Deploy command               | `npx wrangler d1 migrations apply yondr-marketing-requests-db --remote && npx wrangler deploy` |
 | Build variables              | `NODE_VERSION` = `22`                                                                          |
-| Non-production branch builds | **Off** (preview URLs would sit outside Access)                                                |
+| Non-production branch builds | **Off** (preview URLs would skip the sign-in check)                                            |
 
 4. **Save and Deploy**. The build log shows each step; the first deploy creates the tables (migrations) and attaches
    the custom domain `requests.overyondrdev.com` (from `routes` in `wrangler.jsonc`).
