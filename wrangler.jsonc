@@ -13,7 +13,7 @@
   "compatibility_date": "2026-11-01",
   "account_id": "3fac6c19097c5692e17198cffa818085",
 
-  // No public *.workers.dev or preview URLs: they would bypass the Access login.
+  // No public *.workers.dev or preview URLs: they would bypass the sign-in.
   "workers_dev": false,
   "preview_urls": false,
   "routes": [{ "pattern": "requests.overyondrdev.com", "custom_domain": true }],

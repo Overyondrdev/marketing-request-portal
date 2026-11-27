@@ -3,9 +3,9 @@
 **https://requests.overyondrdev.com** — one place for anyone at Yondr to ask marketing for work, get it approved,
 and follow it to delivery: copy, decks, one-pagers, ads, web pages, video, trade show kits and everything between.
 
-- **A brief that asks the right questions.** 24 request types in 8 categories, each with its own questions; answers
+- **A brief that asks the right questions.** 25 request types in 8 categories (including sales kits), each with its own questions; answers
   reveal follow-up questions only when they apply. A live _brief strength_ meter and tips show what would save a round
-  of questions. Turnaround guidance per type flags rush dates and asks why.
+  of questions. Requesters say when they need it; whoever picks the work up gives an estimated delivery date.
 - **Approval.** Requests go to the requester's manager (set once in Settings, changeable per request) by email and
   in the portal. Approvers approve, decline with a reason, or ask a question first.
 - **Routing.** Once approved, the request goes to the type's default creator (set by leads under _People & routing_),
@@ -18,7 +18,7 @@ and follow it to delivery: copy, decks, one-pagers, ads, web pages, video, trade
 - **Review and close.** Deliverables are versioned by round. Requesters accept (with a 1–5 rating) or ask for changes.
   Ad creative is reviewed in the [ad library](https://ads.overyondrdev.com); ad requests link to it.
 - **Work queue and reports for marketing.** Board, list and calendar views; workload per person; reports on volume,
-  approval time, first response, turnaround, on-time delivery, first-time-right, ratings, by type, department and
+  approval time, first response, turnaround, on-time delivery, estimates hit or slipped, first-time-right, ratings, by type, department and
   person; CSV export.
 - **Yondr only.** The Yondr Google sign-in (`auth.overyondrdev.com`, `@overyondr.com` Google accounts only), checked by
   the Worker on every request. See the [overyondrdev.com platform guide](https://github.com/Overyondrdev/overyondr-website-v1/blob/main/docs/PLATFORM.md).
@@ -39,24 +39,24 @@ Every rule is defined once in `public/js/shared/workflow.js` and enforced by the
 
 A single Cloudflare Worker (`yondr-marketing-requests`), no frameworks, no runtime dependencies.
 
-| Path                                            | What                                                                                                                     |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `scripts/build-static.mjs`, `src/lib/static.ts` | Bundles `public/` into the Worker and serves it after the sign-in check (no separate asset upload)                       |
-| `src/index.ts`                                  | Router, sign-in check on every request, CSRF guard, security headers, scheduled reminders                                |
-| `src/lib/access.ts`, `src/lib/yondr-session.js` | Who is signed in: the Yondr Google session (and a legacy Access token), Yondr emails only                                |
-| `src/api/requests.ts`                           | Lists, home, drafts, the workflow actions (submit, approve, assign, deliver, accept…) and routing                        |
-| `src/api/conversation.ts`                       | Comments, questions (blocking or not), answers, internal notes                                                           |
-| `src/api/files.ts`                              | Uploads to and downloads from R2, with permission checks                                                                 |
-| `src/api/reports.ts`                            | Report figures and CSV export                                                                                            |
-| `src/api/admin.ts`, `src/api/me.ts`             | People, roles, routing per type; profile, directory                                                                      |
-| `src/lib/notify.ts`                             | In-app notifications, email (Resend) and Slack                                                                           |
-| `src/cron.ts`                                   | Reminders (weekdays, twice a day)                                                                                        |
-| `public/js/shared/catalog.js`                   | **The request catalog**: categories, types, questions, turnaround, validation, brief score. Shared by browser and Worker |
-| `public/js/shared/workflow.js`                  | Statuses, stages, actions and who may take them. Shared by browser and Worker                                            |
-| `public/js/app.js`, `public/js/views/*`         | The app shell and screens (home, new request, request page, lists, queue, reports, admin, settings, help)                |
-| `public/css/*`                                  | Design system (`base.css`) and screen styles; Yondr Brand Guidelines v1.0                                                |
-| `migrations/`                                   | D1 schema (`yondr-marketing-requests-db`)                                                                                |
-| `test/`                                         | Vitest in the Workers runtime: catalog and workflow rules, the API end to end, the sign-in check                         |
+| Path                                            | What                                                                                                         |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `scripts/build-static.mjs`, `src/lib/static.ts` | Bundles `public/` into the Worker and serves it after the sign-in check (no separate asset upload)           |
+| `src/index.ts`                                  | Router, sign-in check on every request, CSRF guard, security headers, scheduled reminders                    |
+| `src/lib/access.ts`, `src/lib/yondr-session.js` | Who is signed in: the Yondr Google session (and a legacy Access token), Yondr emails only                    |
+| `src/api/requests.ts`                           | Lists, home, drafts, the workflow actions (submit, approve, assign, deliver, accept…) and routing            |
+| `src/api/conversation.ts`                       | Comments, questions (blocking or not), answers, internal notes                                               |
+| `src/api/files.ts`                              | Uploads to and downloads from R2, with permission checks                                                     |
+| `src/api/reports.ts`                            | Report figures and CSV export                                                                                |
+| `src/api/admin.ts`, `src/api/me.ts`             | People, roles, routing per type; profile, directory                                                          |
+| `src/lib/notify.ts`                             | In-app notifications, email (Resend) and Slack                                                               |
+| `src/cron.ts`                                   | Reminders (weekdays, twice a day)                                                                            |
+| `public/js/shared/catalog.js`                   | **The request catalog**: categories, types, questions, validation, brief score. Shared by browser and Worker |
+| `public/js/shared/workflow.js`                  | Statuses, stages, actions and who may take them. Shared by browser and Worker                                |
+| `public/js/app.js`, `public/js/views/*`         | The app shell and screens (home, new request, request page, lists, queue, reports, admin, settings, help)    |
+| `public/css/*`                                  | Design system (`base.css`) and screen styles; Yondr Brand Guidelines v1.0                                    |
+| `migrations/`                                   | D1 schema (`yondr-marketing-requests-db`)                                                                    |
+| `test/`                                         | Vitest in the Workers runtime: catalog and workflow rules, the API end to end, the sign-in check             |
 
 Data: D1 `yondr-marketing-requests-db` (requests, comments, files, events, notifications, users, type settings);
 files in the private R2 bucket `yondr-marketing-requests-files`.
