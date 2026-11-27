@@ -1,7 +1,20 @@
 # Security
 
-The portal holds internal Yondr briefs and files. Report anything that could expose them to a web admin directly
-(not in a public channel or issue).
+The portal holds internal Yondr briefs and files. Report anything that could expose them **privately**, never in a
+public issue, pull request or channel.
+
+## Reporting a vulnerability
+
+1. Open the repository's **Security** tab on GitHub.
+2. Choose **Report a vulnerability** (GitHub private vulnerability reporting).
+3. Describe the problem, how to reproduce it and what it could expose.
+
+Only the repository owners see the report. We aim to acknowledge it within 3 working days. Please don't access,
+change or keep data that isn't yours while testing.
+
+**Scope:** `requests.overyondrdev.com` and this repository's code and workflows. Every `*.overyondrdev.com` host is
+private behind the Yondr Google sign-in, so any way in without a valid sign-in is in scope. Third-party services
+(Google, Cloudflare, Resend, Slack, GitHub) are out of scope; report to them directly.
 
 ## How the portal is protected
 
@@ -17,5 +30,6 @@ The portal holds internal Yondr briefs and files. Report anything that could exp
 - **Files:** private R2 bucket, served only through the Worker after a permission check; anything a browser could run
   is downloaded rather than shown, with a sandboxing CSP.
 - **Headers:** strict CSP (scripts from this origin only), `X-Frame-Options: DENY`, HSTS, `nosniff`, `noindex`.
-- **Secrets** (`OWNER_EMAILS`, `RESEND_API_KEY`, `SLACK_WEBHOOK_URL`) are Worker secrets, never committed. `DEV_EMAIL` is for local
+- **Secrets** (`OWNER_EMAILS`, `RESEND_API_KEY`, `SLACK_WEBHOOK_URL`) are Worker secrets, never committed; CI fails if a tracked file looks like it holds
+  an API key, token or private key (`scripts/secret-scan.mjs`). `DEV_EMAIL` is for local
   `.dev.vars` only and must never be set in production.
