@@ -1,5 +1,10 @@
 # Marketing request portal — instructions for Claude
 
+**Start with the [overyondrdev.com Handbook](https://github.com/Overyondrdev/overyondr-website-v1/blob/main/docs/handbook/README.md)**:
+the single source of truth for the whole platform (what runs where, sign-in without Cloudflare seats, portals, people
+directory, operations, auto-fix, how we work, runbooks, decisions). If your change alters what it says, update it in
+the same work (a PR in overyondr-website-v1).
+
 The Yondr marketing request portal: a Cloudflare Worker (`yondr-marketing-requests`) with D1, R2, static assets and
 Resend email, live at https://requests.overyondrdev.com behind the Yondr Google sign-in (`auth.overyondrdev.com`).
 Read README.md for the map, and the shared **overyondrdev.com platform guide** ([docs/PLATFORM.md](https://github.com/Overyondrdev/overyondr-website-v1/blob/main/docs/PLATFORM.md) in
